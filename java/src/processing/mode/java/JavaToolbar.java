@@ -128,44 +128,39 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
-    // --- PROTECTION LAYER ---
-    // If the component is one of these, do NOT let the Outer Theme change it
+    // 1. PROTECTION LAYER (The "Shield")
     String className = comp.getClass().getName();
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole() ||
         className.contains("ErrorTable") || 
-        className.contains("Table")) { 
+        className.contains("Table") ||
+        className.contains("TextArea")) { 
       return; 
     }
 
-    // Color the background
-    comp.setBackground(c);
-    
-    if (comp instanceof javax.swing.JComponent) {
-      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-      jc.setOpaque(true);
-      
-      // PRECISION TARGETING FOR THE REMAINING BLUE
-      // This hunts for the specific bars seen in your screenshots
-      if (className.contains("EditorHeader") || 
-          className.contains("EditorStatus") || 
-          className.contains("EditorFooter") || 
-          className.contains("Tab") ||
-          className.contains("Gutter")) {
-        jc.setBorder(null); // Removes the blue divider lines
-        jc.setBackground(c);
-      }
-      
-      // Fix for the very bottom "Console/Errors" button bar
-      if (className.contains("Footer")) {
-        for (java.awt.Component child : jc.getComponents()) {
-            child.setBackground(c);
-        }
+    // 2. THE BLUE-SEEKER SENSOR
+    // We check if the current background has any "Blue" in it (Processing's default blue)
+    Color currentBg = comp.getBackground();
+    boolean isBlueish = currentBg != null && currentBg.getBlue() > currentBg.getRed();
+
+    // 3. APPLY COLOR
+    // If it's blue-ish, or if it's a known stubborn container, force the change
+    if (isBlueish || className.contains("Footer") || className.contains("Header") || className.contains("Status")) {
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        jc.setBorder(null); // This is what kills the thin blue divider lines
       }
     }
 
-    // Keep digging for more blue pixels
+    if (comp instanceof javax.swing.AbstractButton) {
+        comp.setBackground(c);
+        ((javax.swing.JComponent)comp).setOpaque(false); // Makes button background match the bar
+    }
+
+    // 4. RECURSIVE SEARCH
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
