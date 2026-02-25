@@ -148,22 +148,6 @@ public class JavaToolbar extends EditorToolbar {
     jeditor.getConsole().repaint();
   }
 
-    // Acceptance Criteria: Text must change between white and black
-    Color contrast = getContrastColor(pickedColor);
-    if (optionIndex == 0) {
-        // This updates the text labels in the toolbar to be readable
-        for (java.awt.Component c : this.getComponents()) {
-            c.setForeground(contrast);
-        }
-    }
-
-    // Acceptance Criteria: The chosen color must immediately display
-    this.revalidate();
-    this.repaint();
-    jeditor.getTextArea().repaint();
-    jeditor.getConsole().repaint();
-  }
-
   private Color getContrastColor(Color color) {
     // Standard YIQ formula to determine if background is dark or light
     double yiq = ((color.getRed() * 299) + (color.getGreen() * 587) + (color.getBlue() * 114)) / 1000;
