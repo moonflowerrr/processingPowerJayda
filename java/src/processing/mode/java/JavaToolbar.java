@@ -97,32 +97,25 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    // Convert color to Hex
-    String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
-    
-    if (optionIndex == 1) { // Inner Coding Area
-      processing.app.Preferences.set("editor.bgcolor", hex);
-      
-      // Acceptance Criteria: Text must change between white and black
-      Color textColor = getContrastColor(pickedColor);
-      String textHex = String.format("#%02x%02x%02x", textColor.getRed(), textColor.getGreen(), textColor.getBlue());
-      processing.app.Preferences.set("editor.fgcolor", textHex);
-      
-    } else if (optionIndex == 0) { // Outer Theme
-      processing.app.Preferences.set("header.color", hex);
-    } else if (optionIndex == 2) { // Console
-      processing.app.Preferences.set("console.color", hex);
+    if (optionIndex == 0) { // Outer Theme (The Blue Bar)
+        // This targets the toolbar you are currently looking at
+        this.setBackground(pickedColor);
+        // This targets the box containing the buttons
+        if (box != null) box.setBackground(pickedColor);
+        
+    } else if (optionIndex == 1) { // Inner Coding Area
+        // This targets the actual white box where you type
+        jeditor.getTextArea().getPainter().setBackground(pickedColor);
+        
+        // Acceptance Criteria: Text must change between white and black
+        Color textColor = getContrastColor(pickedColor);
+        jeditor.getTextArea().getPainter().setCaretColor(textColor);
+        jeditor.getTextArea().getPainter().setForeground(textColor);
     }
 
-    // Acceptance Criteria: The color change must be saved
-    // Save to preferences.txt
-    processing.app.Preferences.save(); 
-    
-    // Trigger the global preference update via Base
-    // This is the correct symbol that exists in the Processing core
-    jeditor.getBase().handlePrefs(); 
-    
-    // Force the text area specifically to repaint with new colors
+    // Force an immediate visual update without opening the settings window
+    this.revalidate();
+    this.repaint();
     jeditor.getTextArea().repaint();
   }
 
