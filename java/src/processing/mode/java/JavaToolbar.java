@@ -115,15 +115,15 @@ public class JavaToolbar extends EditorToolbar {
     }
 
     // Acceptance Criteria: The color change must be saved
+    // Save to preferences.txt
     processing.app.Preferences.save(); 
     
-    // Acceptance Criteria: Immediately display
-    // This triggers Processing's internal theme refresh logic
-    jeditor.handlePrefs(); 
+    // Trigger the global preference update via Base
+    // This is the correct symbol that exists in the Processing core
+    jeditor.getBase().handlePrefs(); 
     
-    // Force the UI components to redraw with the new preferences
+    // Force the text area specifically to repaint with new colors
     jeditor.getTextArea().repaint();
-    jeditor.repaint();
   }
 
   private Color getContrastColor(Color color) {
