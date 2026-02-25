@@ -97,36 +97,56 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    if (optionIndex == 0) { // Outer Theme (The Blue Bar)
-        // Color the toolbar itself
+    if (optionIndex == 0) { // Outer Theme (The Whole Top Border)
         this.setOpaque(true);
         this.setBackground(pickedColor);
         
-        // Target the entire header area (the "whole border" at the top)
-        if (this.getParent() != null) {
-            this.getParent().setBackground(pickedColor);
-            ((javax.swing.JComponent)this.getParent()).setOpaque(true);
-            this.getParent().repaint(); // Added: Ensures the whole top bar refreshes
+        // Target the Header (the container for the toolbar)
+        java.awt.Container header = this.getParent();
+        if (header != null) {
+            header.setBackground(pickedColor);
+            if (header instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)header).setOpaque(true);
+            }
+            // Target the Editor's main container to fill the rest of the border
+            java.awt.Container mainApp = header.getParent();
+            if (mainApp != null) {
+                mainApp.setBackground(pickedColor);
+            }
+            header.repaint();
         }
     } else if (optionIndex == 1) { // Inner Coding Area
-        // Target the background of the actual text editor
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
-        
-        // Handle text color contrast
         Color textColor = getContrastColor(pickedColor);
         jeditor.getTextArea().getPainter().setForeground(textColor);
-    } else if (optionIndex == 2) { // Console
-        // Target the actual text area of the console
+    } else if (optionIndex == 2) { // Console (The Bottom Area)
         jeditor.getConsole().setOpaque(true);
         jeditor.getConsole().setBackground(pickedColor);
         
-        // Target the viewport (the part that actually shows the color)
-        if (jeditor.getConsole().getParent() != null) {
-            jeditor.getConsole().getParent().setBackground(pickedColor);
-            ((javax.swing.JComponent)jeditor.getConsole().getParent()).setOpaque(true);
-            viewport.repaint(); // Added: Refreshes the green area you wanted
+        // Target the viewport to ensure the color fills the whole box
+        java.awt.Container viewport = jeditor.getConsole().getParent();
+        if (viewport != null && viewport instanceof javax.swing.JComponent) {
+            javax.swing.JComponent jv = (javax.swing.JComponent)viewport;
+            jv.setOpaque(true);
+            jv.setBackground(pickedColor);
+            jv.repaint(); // Fixed: Now inside the if-block scope
         }
     }
+
+    // Acceptance Criteria: Text contrast update
+    Color contrast = getContrastColor(pickedColor);
+    if (optionIndex == 0) {
+        for (java.awt.Component c : this.getComponents()) {
+            c.setForeground(contrast);
+        }
+    }
+
+    // Immediate redraw
+    this.revalidate();
+    this.repaint();
+    jeditor.getTextArea().repaint();
+    jeditor.getConsole().repaint();
+  }
 
     // Acceptance Criteria: Text must change between white and black
     Color contrast = getContrastColor(pickedColor);
