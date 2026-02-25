@@ -129,28 +129,35 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     // --- PROTECTION LAYER ---
-    // If this component is the Text Area or the Console, DO NOT color it.
+    // We PROTECT the text areas so they don't get overwritten by the border color
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole()) {
-      return; // Stop here and don't go deeper into this specific part
+      return; 
     }
 
-    // Color the background of panels and headers
+    // Color the background of this specific piece
     comp.setBackground(c);
     
     if (comp instanceof javax.swing.JComponent) {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      
+      // This allows our color to show through the default blue theme
       jc.setOpaque(true);
       
-      // Kills the blue borders/images on the sides and tab bar
+      // TARGETING THE REMAINING BLUE:
+      // This looks for the Status bar (above console) and the Tab bar (sketch name)
       String name = jc.getClass().getName();
-      if (name.contains("Header") || name.contains("Status") || name.contains("Tab")) {
-        jc.setBorder(null);
+      if (name.contains("EditorHeader") || 
+          name.contains("Status") || 
+          name.contains("Tab") || 
+          name.contains("Toolbar")) {
+        jc.setBorder(null); // Removes the tiny blue border lines
+        jc.setBackground(c);
       }
     }
 
-    // Keep digging for more blue pixels, unless we are in a protected zone
+    // Keep digging into every folder and panel to find hidden blue spots
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
