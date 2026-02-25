@@ -33,6 +33,12 @@ import processing.app.ui.EditorButton;
 import processing.app.ui.EditorToolbar;
 import processing.mode.java.debug.Debugger;
 
+import java.awt.Color;
+import javax.swing.JColorChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.GridLayout;
+
 
 public class JavaToolbar extends EditorToolbar {
   JavaEditor jeditor;
