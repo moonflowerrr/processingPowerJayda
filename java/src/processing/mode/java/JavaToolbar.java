@@ -101,35 +101,45 @@ public class JavaToolbar extends EditorToolbar {
         this.setOpaque(true);
         this.setBackground(pickedColor);
         
-        // Target the Header (the container for the toolbar)
-        java.awt.Container header = this.getParent();
-        if (header != null) {
-            header.setBackground(pickedColor);
-            if (header instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)header).setOpaque(true);
+        // Climb up to the very top of the window area
+        java.awt.Container ancestor = this.getParent();
+        while (ancestor != null) {
+            ancestor.setBackground(pickedColor);
+            if (ancestor instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)ancestor).setOpaque(true);
             }
-            // Target the Editor's main container to fill the rest of the border
-            java.awt.Container mainApp = header.getParent();
-            if (mainApp != null) {
-                mainApp.setBackground(pickedColor);
+            // If we hit the main window frame, stop there
+            if (ancestor instanceof processing.app.ui.Editor) break;
+            ancestor = ancestor.getParent();
+        }
+        
+        // Acceptance Criteria: Force all buttons in the toolbar to match
+        for (java.awt.Component child : this.getComponents()) {
+            child.setBackground(pickedColor);
+            if (child instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)child).setOpaque(false); // Let the pink shine through
             }
-            header.repaint();
         }
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
         Color textColor = getContrastColor(pickedColor);
         jeditor.getTextArea().getPainter().setForeground(textColor);
     } else if (optionIndex == 2) { // Console (The Bottom Area)
+        // Target the actual text area
         jeditor.getConsole().setOpaque(true);
         jeditor.getConsole().setBackground(pickedColor);
         
-        // Target the viewport to ensure the color fills the whole box
-        java.awt.Container viewport = jeditor.getConsole().getParent();
-        if (viewport != null && viewport instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jv = (javax.swing.JComponent)viewport;
-            jv.setOpaque(true);
-            jv.setBackground(pickedColor);
-            jv.repaint(); // Fixed: Now inside the if-block scope
+        // Find the scroll pane that wraps the console
+        java.awt.Component current = jeditor.getConsole();
+        while (current != null) {
+            if (current instanceof javax.swing.JScrollPane) {
+                javax.swing.JScrollPane sp = (javax.swing.JScrollPane)current;
+                sp.getViewport().setBackground(pickedColor);
+                sp.getViewport().setOpaque(true);
+                sp.setBackground(pickedColor);
+                break;
+            }
+            current = current.getParent();
         }
     }
 
