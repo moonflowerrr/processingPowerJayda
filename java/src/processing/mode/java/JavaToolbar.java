@@ -129,35 +129,37 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     // --- PROTECTION LAYER ---
-    // We PROTECT the text areas so they don't get overwritten by the border color
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole()) {
       return; 
     }
 
-    // Color the background of this specific piece
-    comp.setBackground(c);
+    // Target the specific Processing UI classes by their internal names
+    String className = comp.getClass().getName();
     
-    if (comp instanceof javax.swing.JComponent) {
-      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-      
-      // This allows our color to show through the default blue theme
-      jc.setOpaque(true);
-      
-      // TARGETING THE REMAINING BLUE:
-      // This looks for the Status bar (above console) and the Tab bar (sketch name)
-      String name = jc.getClass().getName();
-      if (name.contains("EditorHeader") || 
-          name.contains("Status") || 
-          name.contains("Tab") || 
-          name.contains("Toolbar")) {
-        jc.setBorder(null); // Removes the tiny blue border lines
+    // If it's one of the "Stubborn Four", we force it to be opaque and pink
+    if (className.contains("EditorHeader") || 
+        className.contains("EditorStatus") || 
+        className.contains("EditorFooter") || 
+        className.contains("EditorToolbar") ||
+        className.contains("LineNumberGutter")) { // Includes that side-strip
+        
+      if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
         jc.setBackground(c);
+        jc.setBorder(null); // Kills the thin blue lines
+      }
+    } else {
+      // For everything else (panels, boxes), just set the background normally
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+        ((javax.swing.JComponent)comp).setOpaque(true);
       }
     }
 
-    // Keep digging into every folder and panel to find hidden blue spots
+    // Keep digging
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
