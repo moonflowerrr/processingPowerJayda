@@ -98,25 +98,30 @@ public class JavaToolbar extends EditorToolbar {
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     if (optionIndex == 0) { // Outer Theme (The Blue Bar)
-        // This targets the toolbar you are currently looking at
+        // Change the toolbar itself
         this.setBackground(pickedColor);
-        // This targets the box containing the buttons
-        if (box != null) box.setBackground(pickedColor);
-        
+        // Change the container that holds the buttons
+        if (box != null) {
+            box.setOpaque(true);
+            box.setBackground(pickedColor);
+        }
     } else if (optionIndex == 1) { // Inner Coding Area
-        // This targets the actual white box where you type
+        // Target the background of the actual text editor
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
         
-        // Acceptance Criteria: Text must change between white and black
+        // Handle text color contrast
         Color textColor = getContrastColor(pickedColor);
-        jeditor.getTextArea().getPainter().setCaretColor(textColor);
         jeditor.getTextArea().getPainter().setForeground(textColor);
+    } else if (optionIndex == 2) { // Console
+        // Target the console area at the bottom
+        jeditor.getConsole().setBackground(pickedColor);
     }
 
-    // Force an immediate visual update without opening the settings window
+    // Acceptance Criteria: The chosen color must immediately display
     this.revalidate();
     this.repaint();
     jeditor.getTextArea().repaint();
+    jeditor.getConsole().repaint();
   }
 
   private Color getContrastColor(Color color) {
