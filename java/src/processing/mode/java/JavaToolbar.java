@@ -100,19 +100,16 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
-      // These keys tell FlatLaf to specifically color the functional bars
-      javax.swing.UIManager.put("TitlePane.background", pickedColor);
+      // Global force - This is what makes the "strips" turn pink
+      javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
       javax.swing.UIManager.put("StatusBar.background", pickedColor);
-      
-      // This targets the thin divider lines
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
-
+      
       processing.app.Preferences.set("header.color", hex);
       
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-          // Use a simplified vanquisher that doesn't mess with hover transparency
           vanquishBlueSurgically(window, pickedColor);
       }
     } 
@@ -132,29 +129,31 @@ public class JavaToolbar extends EditorToolbar {
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     String className = comp.getClass().getName();
     
-    // 1. THE SHIELD
-    if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || className.contains("ErrorTable")) {
-      return;
+    // THE SHIELD (Add Table and TextArea to keep them safe)
+    if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || 
+        className.contains("ErrorTable") || className.contains("TextArea")) {
+        return;
     }
 
-    // 2. THE FORCEFUL PAINT
-    // We target the class names we found in your Spy list
-    if (className.contains("Editor") || className.contains("Toolbar") || className.contains("Status") || className.contains("Footer") || className.contains("Tab")) {
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
+    // THE FORCEFUL PAINT
+    // We target everything that isn't protected to ensure no blue remains
+    comp.setBackground(c);
+    
+    if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-        jc.setOpaque(true);
-        jc.setBorder(null);
-        // This is the "Lock" that stops the blue from coming back
-        jc.putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
-      }
+        jc.setOpaque(true); // Forces the pink to show through
+        jc.setBorder(null); // Removes blue divider lines
+        
+        // This is the "Lock" that prevents FlatLaf from reverting to blue
+        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+        jc.putClientProperty("FlatLaf.style", "background: " + hex);
     }
 
-    // 3. RECURSE
+    // RECURSE
     if (comp instanceof java.awt.Container) {
-      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-        vanquishBlueSurgically(child, c);
-      }
+        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+            vanquishBlueSurgically(child, c);
+        }
     }
   }
 
