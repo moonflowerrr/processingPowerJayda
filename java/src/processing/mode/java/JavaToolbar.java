@@ -99,96 +99,61 @@ public class JavaToolbar extends EditorToolbar {
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
-    if (optionIndex == 0) { // Outer Theme (Borders/Header)
-      // 1. Fix the Borders
+    if (optionIndex == 0) { // Outer Theme
+      // We keep these specific to the UI borders only
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
       javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
       
-      // 2. Fix the Hover/Pressed states for ALL buttons
-      javax.swing.UIManager.put("Button.hoverBackground", pickedColor);
-      javax.swing.UIManager.put("Button.pressedBackground", pickedColor);
-      javax.swing.UIManager.put("ToolBar.hoverBackground", pickedColor);
-      
-      // 3. Keep the popups safe by NOT setting Panel.background here
-      
       processing.app.Preferences.set("header.color", hex);
       
+      // We target ONLY the main editor window, not the popup
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
         vanquishBlueSurgically(window, pickedColor);
       }
     } 
-    else if (optionIndex == 1) { // Inner Coding Area ONLY
+    else if (optionIndex == 1) { // Inner Coding Area
       jeditor.getTextArea().getPainter().setBackground(pickedColor);
       processing.app.Preferences.set("editor.bgcolor", hex);
-      
-      Color contrast = getContrastColor(pickedColor);
-      jeditor.getTextArea().getPainter().setForeground(contrast);
     }
-    else if (optionIndex == 2) { // Console ONLY
+    else if (optionIndex == 2) { // Console
       jeditor.getConsole().setBackground(pickedColor);
       processing.app.Preferences.set("console.color", hex);
     }
 
     processing.app.Preferences.save();
-    
     javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     String className = comp.getClass().getName();
-    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-
-    // 1. THE SHIELD
+    
+    // 1. THE SHIELD (Add any area that should NOT be pink)
     if (comp == jeditor.getTextArea() || 
-        comp == jeditor.getTextArea().getPainter() || 
-        comp == jeditor.getConsole() ||
-        className.contains("ErrorTable") ||
-        className.contains("TextArea")) { 
-      return; 
+        comp == jeditor.getConsole() || 
+        className.contains("ErrorTable")) {
+        return;
     }
 
-    // 2. TARGET STUBBORN AREAS & TOOLBARS
-    boolean isStubborn = className.contains("EditorStatus") || 
-                        className.contains("EditorFooter") || 
-                        className.contains("EditorHeader") ||
-                        className.contains("MarkerColumn") ||
-                        className.contains("Toolbar");
+    // 2. THE TARGETS (The specific areas that are blue)
+    boolean isBlueArea = className.contains("EditorStatus") || 
+                         className.contains("EditorFooter") || 
+                         className.contains("EditorHeader") ||
+                         className.contains("Toolbar") ||
+                         className.contains("Tab");
 
-    if (isStubborn || comp instanceof javax.swing.JToolBar) {
+    if (isBlueArea || comp instanceof javax.swing.JPanel || comp instanceof javax.swing.JToolBar) {
       comp.setBackground(c);
       if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         jc.setOpaque(true);
         jc.setBorder(null);
-        jc.putClientProperty("FlatLaf.style", "background: " + hex);
-      }
-    } 
-
-    // 3. SPECIAL BUTTON & HOVER HANDLING
-    // This stops the blue flickering when you move your mouse
-    if (comp instanceof javax.swing.AbstractButton) {
-      javax.swing.AbstractButton btn = (javax.swing.AbstractButton) comp;
-      btn.setBackground(c);
-      btn.setContentAreaFilled(false); // MAGIC LINE: Stops the button from painting its own hover background
-      btn.setOpaque(false); 
-      btn.setBorderPainted(false); // Removes the tiny blue border on hover
-      
-      if (btn instanceof javax.swing.JComponent) {
-        ((javax.swing.JComponent)btn).putClientProperty("FlatLaf.style", "background: " + hex);
-      }
-    }
-    
-    // 4. TARGET THE TABS
-    else if (className.contains("Tab")) {
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
-        ((javax.swing.JComponent)comp).setBorder(null);
-        ((javax.swing.JComponent)comp).putClientProperty("FlatLaf.style", "background: " + hex);
+        // Lock the color for FlatLaf without breaking visibility
+        jc.putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
       }
     }
 
-    // 5. RECURSIVE SEARCH
+    // 3. RECURSIVE SEARCH
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
