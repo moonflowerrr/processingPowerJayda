@@ -59,6 +59,68 @@ public class JavaToolbar extends EditorToolbar {
     return jeditor.isDebuggerEnabled();
   }
 
+  public void showThemePicker() {
+    // 1. Acceptance Criteria: Shown three options
+    String[] options = { "Outer Theme", "Inner Coding Area", "Console" };
+    String selection = (String) JOptionPane.showInputDialog(null, "Select element to change:",
+        "Theme Customizer", JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+
+    if (selection == null) return;
+
+    // 2. Acceptance Criteria: Color picker square with scrolls & Hex input
+    // JColorChooser handles the hex box and preview box automatically.
+    Color pickedColor = JColorChooser.showDialog(jeditor, "Customize " + selection, Color.WHITE);
+
+    if (pickedColor != null) {
+      String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
+      
+      // 3. Map selection to Processing's internal Preference keys
+      if (selection.equals("Outer Theme")) {
+        processing.app.Preferences.set("header.color", hex); 
+      } else if (selection.equals("Inner Coding Area")) {
+        processing.app.Preferences.set("editor.bgcolor", hex);
+        processing.app.Preferences.set("editor.fgcolor", "#" + Integer.toHexString(getContrastColor(pickedColor).getRGB()).substring(2));
+      } else {
+        processing.app.Preferences.set("console.color", hex);
+      }
+
+      // 4. Acceptance Criteria: Immediately display and save
+      jeditor.getBase().handlePrefs(); // Applies and saves to preferences.txt
+      jeditor.rebuildHeader(); 
+    }
+  }
+
+  private void applyCustomColor(int optionIndex, Color pickedColor) {
+    // Convert the Java Color object to a Hex String for Processing preferences
+    String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
+    
+    switch (optionIndex) {
+      case 0: // Outer Theme
+        processing.app.Preferences.set("header.color", hex);
+        break;
+      case 1: // Inner Coding Area
+        processing.app.Preferences.set("editor.bgcolor", hex);
+        // Criteria: Text color must change based on background brightness
+        Color textColor = getContrastColor(pickedColor);
+        String textHex = String.format("#%02x%02x%02x", textColor.getRed(), textColor.getGreen(), textColor.getBlue());
+        processing.app.Preferences.set("editor.fgcolor", textHex);
+        break;
+      case 2: // Console
+        processing.app.Preferences.set("console.color", hex);
+        break;
+    }
+
+    // Criteria: The color change must be saved and immediately display
+    jeditor.getBase().handlePrefs(); // This saves to preferences.txt and refreshes the UI
+    jeditor.rebuildHeader(); // Forces the toolbar to repaint with new colors
+  }
+
+  private Color getContrastColor(Color color) {
+    // Standard YIQ formula to determine if background is dark or light
+    double yiq = ((color.getRed() * 299) + (color.getGreen() * 587) + (color.getBlue() * 114)) / 1000;
+    return (yiq >= 128) ? Color.BLACK : Color.WHITE;
+  }
+
 
   @Override
   public List<EditorButton> createButtons() {
@@ -130,13 +192,21 @@ public class JavaToolbar extends EditorToolbar {
                                   "Toggle Theme") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        // Toggle the preference
-        boolean isDark = processing.app.Preferences.getBoolean("editor.highcontrast");
-        processing.app.Preferences.setBoolean("editor.highcontrast", !isDark);
-        
-        // Update the app and the toolbar UI
-        jeditor.getBase().handlePrefs(); 
-        updateTheme();
+        String[] options = {"Outer Theme", "Inner Coding Area", "Console"};
+        int selection = JOptionPane.showOptionDialog(jeditor, 
+            "Which element would you like to change?", 
+            "Theme Customizer", 
+            JOptionPane.DEFAULT_OPTION, 
+            JOptionPane.PLAIN_MESSAGE, 
+            null, options, options[0]);
+
+        if (selection != -1) {
+          // JColorChooser fulfills criteria for: Hex box, Preview box, and Sliders
+          Color pickedColor = JColorChooser.showDialog(jeditor, "Pick your color", Color.WHITE);
+          if (pickedColor != null) {
+            applyCustomColor(selection, pickedColor);
+          }
+        }
       }
     };
     outgoing.add(themeButton);
