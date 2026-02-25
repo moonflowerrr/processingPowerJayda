@@ -97,65 +97,47 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    if (optionIndex == 0) { // Outer Theme (The Whole Top Border)
-        this.setOpaque(true);
+    // 1. Convert to Hex for the Theme engine
+    String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
+    
+    if (optionIndex == 0) { // Outer Theme (The Blue Bar/Header)
+        // Direct UI changes
         this.setBackground(pickedColor);
+        this.setOpaque(true);
         
-        // Climb up to the very top of the window area
-        java.awt.Container ancestor = this.getParent();
-        while (ancestor != null) {
-            ancestor.setBackground(pickedColor);
-            if (ancestor instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)ancestor).setOpaque(true);
-            }
-            // If we hit the main window frame, stop there
-            if (ancestor instanceof processing.app.ui.Editor) break;
-            ancestor = ancestor.getParent();
-        }
+        // Update the actual Theme constants
+        processing.app.Theme.set("toolbar.bgcolor", hex);
+        processing.app.Theme.set("header.bgcolor", hex);
         
-        // Acceptance Criteria: Force all buttons in the toolbar to match
-        for (java.awt.Component child : this.getComponents()) {
-            child.setBackground(pickedColor);
-            if (child instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)child).setOpaque(false); // Let the pink shine through
-            }
+        // Target buttons specifically
+        for (java.awt.Component c : this.getComponents()) {
+            c.setBackground(pickedColor);
         }
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
-        Color textColor = getContrastColor(pickedColor);
-        jeditor.getTextArea().getPainter().setForeground(textColor);
-    } else if (optionIndex == 2) { // Console (The Bottom Area)
-        // Target the actual text area
-        jeditor.getConsole().setOpaque(true);
+        Color contrast = getContrastColor(pickedColor);
+        jeditor.getTextArea().getPainter().setForeground(contrast);
+        processing.app.Preferences.set("editor.bgcolor", hex);
+    } else if (optionIndex == 2) { // Console
         jeditor.getConsole().setBackground(pickedColor);
+        processing.app.Theme.set("console.color", hex);
         
-        // Find the scroll pane that wraps the console
-        java.awt.Component current = jeditor.getConsole();
-        while (current != null) {
-            if (current instanceof javax.swing.JScrollPane) {
-                javax.swing.JScrollPane sp = (javax.swing.JScrollPane)current;
-                sp.getViewport().setBackground(pickedColor);
-                sp.getViewport().setOpaque(true);
-                sp.setBackground(pickedColor);
-                break;
-            }
-            current = current.getParent();
+        // Reach into the ScrollPane Viewport
+        java.awt.Container viewport = jeditor.getConsole().getParent();
+        if (viewport != null) {
+            viewport.setBackground(pickedColor);
         }
     }
 
-    // Acceptance Criteria: Text contrast update
-    Color contrast = getContrastColor(pickedColor);
-    if (optionIndex == 0) {
-        for (java.awt.Component c : this.getComponents()) {
-            c.setForeground(contrast);
-        }
-    }
-
-    // Immediate redraw
-    this.revalidate();
+    // 2. The "Nuclear Option": Tell the Editor to rebuild its UI
+    jeditor.handlePrefs(); 
+    
+    // 3. Force the visual refresh
     this.repaint();
     jeditor.getTextArea().repaint();
-    jeditor.getConsole().repaint();
+    if (this.getParent() != null) {
+        this.getParent().repaint();
+    }
   }
 
   private Color getContrastColor(Color color) {
