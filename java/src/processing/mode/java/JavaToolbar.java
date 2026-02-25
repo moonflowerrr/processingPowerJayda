@@ -100,6 +100,9 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme (Borders/Header)
+      javax.swing.UIManager.put("Panel.background", pickedColor);
+      javax.swing.UIManager.put("ToolBar.background", pickedColor);
+
       processing.app.Preferences.set("header.color", hex);
       
       // Target the main window
@@ -128,36 +131,42 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
-    // 1. PROTECTION LAYER (The "Shield")
+    // 1. PROTECTION LAYER
     String className = comp.getClass().getName();
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole() ||
         className.contains("ErrorTable") || 
-        className.contains("Table") ||
-        className.contains("TextArea")) { 
+        className.contains("Table")) { 
       return; 
     }
 
-    // 2. THE BLUE-SEEKER SENSOR
-    // We check if the current background has any "Blue" in it (Processing's default blue)
-    Color currentBg = comp.getBackground();
-    boolean isBlueish = currentBg != null && currentBg.getBlue() > currentBg.getRed();
-
-    // 3. APPLY COLOR
-    // If it's blue-ish, or if it's a known stubborn container, force the change
-    if (isBlueish || className.contains("Footer") || className.contains("Header") || className.contains("Status")) {
+    // 2. THE FORCEFUL OVERRIDE
+    // This targets any JPanel, Toolbar, or Header/Footer area
+    if (comp instanceof javax.swing.JPanel || 
+        comp instanceof javax.swing.JToolBar ||
+        className.contains("Header") || 
+        className.contains("Footer") || 
+        className.contains("Status")) {
+        
       comp.setBackground(c);
+      
       if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         jc.setOpaque(true);
-        jc.setBorder(null); // This is what kills the thin blue divider lines
+        jc.setBorder(null); // Removes those blue divider lines
+        
+        // KILL THE UI DELEGATE: This prevents the "Blue Theme" from redrawing itself
+        jc.setUI(new javax.swing.plaf.PanelUI() {}); 
       }
     }
 
-    if (comp instanceof javax.swing.AbstractButton) {
-        comp.setBackground(c);
-        ((javax.swing.JComponent)comp).setOpaque(false); // Makes button background match the bar
+    // 3. TARGET THE TABS & BUTTONS
+    if (className.contains("Tab") || comp instanceof javax.swing.AbstractButton) {
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+          ((javax.swing.JComponent)comp).setOpaque(false);
+      }
     }
 
     // 4. RECURSIVE SEARCH
