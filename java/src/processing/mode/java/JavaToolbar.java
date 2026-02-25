@@ -99,57 +99,46 @@ public class JavaToolbar extends EditorToolbar {
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
-    if (optionIndex == 0) { // Outer Theme (The Blue Bar/Header)
-        processing.app.Preferences.set("header.color", hex);
-        
-        // 1. Paint the toolbar and ALL its internal boxes
+    if (optionIndex == 0) { // Outer Theme (The Blue Bar + All Borders)
+        // 1. Paint this toolbar
         this.setBackground(pickedColor);
         this.setOpaque(true);
-        if (box != null) {
-            box.setBackground(pickedColor);
-            box.setOpaque(true);
-        }
 
-        // 2. Climb up and paint the "Whole Border"
-        java.awt.Container p = this.getParent();
-        while (p != null) {
-            p.setBackground(pickedColor);
-            if (p instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)p).setOpaque(true);
+        // 2. The "Blue Vanquisher": Climb up and paint every parent container
+        java.awt.Container ancestor = this.getParent();
+        while (ancestor != null) {
+            ancestor.setBackground(pickedColor);
+            if (ancestor instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)ancestor).setOpaque(true);
             }
-            // Stop once we hit the main editor frame
-            if (p.getClass().getName().endsWith("Editor")) break;
-            p = p.getParent();
+            // Stop if we hit the main Window frame
+            if (ancestor instanceof java.awt.Window) break;
+            ancestor = ancestor.getParent();
         }
+        
+        // 3. Update the preference so it's remembered
+        processing.app.Preferences.set("header.color", hex);
+
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
         processing.app.Preferences.set("editor.bgcolor", hex);
         
+        // Adjust text contrast automatically
         Color contrast = getContrastColor(pickedColor);
         jeditor.getTextArea().getPainter().setForeground(contrast);
-    } else if (optionIndex == 2) { // Console
-        processing.app.Preferences.set("console.color", hex);
-        
-        // Target the console and its "Viewport" container
-        javax.swing.JComponent console = (javax.swing.JComponent)jeditor.getConsole();
-        console.setBackground(pickedColor);
-        console.setOpaque(true);
-        
-        if (console.getParent() != null) {
-            console.getParent().setBackground(pickedColor);
-            ((javax.swing.JComponent)console.getParent()).setOpaque(true);
-        }
     }
 
-    // Save silently in the background
+    // Save silently—this prevents the Preferences window from opening
     processing.app.Preferences.save();
 
-    // Trigger immediate redraw without opening the window
+    // Force a deep refresh of the UI
     this.revalidate();
     this.repaint();
     jeditor.getTextArea().repaint();
-    jeditor.getConsole().repaint();
-    if (this.getParent() != null) this.getParent().repaint();
+    
+    // Refresh the top-level window to show the new border colors
+    java.awt.Component top = javax.swing.SwingUtilities.getRoot(this);
+    if (top != null) top.repaint();
   }
 
   private Color getContrastColor(Color color) {
