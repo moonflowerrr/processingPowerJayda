@@ -163,7 +163,7 @@ abstract public class EditorToolbar extends JPanel implements KeyListener {
       }
     };
     
-    return new ArrayList<>(Arrays.asList(runButton, stopButton));
+    return new ArrayList<>(Arrays.asList(runButton, stopButton, themeButton));
   }
 
 
