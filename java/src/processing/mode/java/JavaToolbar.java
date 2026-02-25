@@ -97,28 +97,26 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    // Convert the Java Color object to a Hex String for Processing preferences
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
-    switch (optionIndex) {
-      case 0: // Outer Theme
-        processing.app.Preferences.set("header.color", hex);
-        break;
-      case 1: // Inner Coding Area
-        processing.app.Preferences.set("editor.bgcolor", hex);
-        // Criteria: Text color must change based on background brightness
-        Color textColor = getContrastColor(pickedColor);
-        String textHex = String.format("#%02x%02x%02x", textColor.getRed(), textColor.getGreen(), textColor.getBlue());
-        processing.app.Preferences.set("editor.fgcolor", textHex);
-        break;
-      case 2: // Console
-        processing.app.Preferences.set("console.color", hex);
-        break;
-    }
-
-    // Criteria: The color change must be saved and immediately display
-    jeditor.getBase().handlePrefs(); // This saves to preferences.txt and refreshes the UI
-    jeditor.rebuildHeader(); // Forces the toolbar to repaint with new colors
+    if (optionIndex == 1) { // Inner Coding Area
+      processing.app.Preferences.set("editor.bgcolor", hex);
+      
+      // Calculate and set the contrast text color
+      Color textColor = getContrastColor(pickedColor);
+      String textHex = String.format("#%02x%02x%02x", textColor.getRed(), textColor.getGreen(), textColor.getBlue());
+      processing.app.Preferences.set("editor.fgcolor", textHex);
+      
+      // --- THIS IS THE MAGIC LINE ---
+      // This tells the actual text editor to reload its theme colors immediately
+      jeditor.getTextArea().getPainter().setTheme(new processing.app.syntax.Theme(processing.app.Preferences.getColor("editor.bgcolor")));
+    } 
+    
+    // Save to the preferences.txt file
+    jeditor.getBase().handlePrefs(); 
+    
+    // Force the window to redraw
+    jeditor.repaint(); 
   }
 
   private Color getContrastColor(Color color) {
