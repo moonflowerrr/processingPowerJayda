@@ -128,32 +128,26 @@ public class JavaToolbar extends EditorToolbar {
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD (Protecting the code/console areas)
+    // 1. THE SHIELD
     if (comp == jeditor.getTextArea() || 
-        comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole() ||
-        className.contains("ErrorTable") ||
-        className.contains("TextArea")) { 
+        className.contains("ErrorTable")) { 
       return; 
     }
 
-    // 2. THE LOCAL OVERRIDE
-    // We apply pink to virtually everything else in the main window
+    // 2. THE LOCAL OVERRIDE (Console-Friendly Version)
     if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         
-        // This is the strongest "local" command in FlatLaf.
-        // It's like an "!important" tag in CSS.
-        jc.putClientProperty("FlatLaf.style", "background: " + hex + "; " +
-                           "borderWidth: 0; " +
-                           "focusColor: " + hex);
-        
-        jc.setBackground(c);
-        jc.setOpaque(true);
-        
-        // Specifically target labels (like "Console" or "Line 1") inside these bars
-        if (comp instanceof javax.swing.JLabel) {
-            jc.setOpaque(false); // Let the parent's pink shine through
+        // Only target specific containers to avoid over-stretching
+        if (className.contains("Status") || className.contains("Footer") || 
+            className.contains("Header") || className.contains("Toolbar") || 
+            comp instanceof javax.swing.JPanel) {
+            
+            // We use a simpler style string that won't cause errors
+            jc.putClientProperty("FlatLaf.style", "background: " + hex);
+            jc.setBackground(c);
+            jc.setOpaque(true);
         }
     }
 
