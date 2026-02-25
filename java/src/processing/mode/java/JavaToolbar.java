@@ -100,18 +100,16 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme (Borders/Header)
-      // These only affect borders and component backgrounds, not the whole Dialog panel
-      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("TableHeader.background", pickedColor); // Targets the Problem/Tab/Line bar
-      
-      // We REMOVE UIManager.put("Panel.background", pickedColor) to fix the popup
-      
-      processing.app.Preferences.set("header.color", hex);
-      
-      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
-      if (window != null) {
+      if (optionIndex == 0) {
+        // Only target the lines and borders
+        javax.swing.UIManager.put("Component.borderColor", pickedColor);
+        javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
+        javax.swing.UIManager.put("Separator.foreground", pickedColor);
+        
+        java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (window != null) {
           vanquishBlueSurgically(window, pickedColor);
+        }
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area ONLY
@@ -132,42 +130,57 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
+    // 1. THE SHIELD (Protect your work area)
     String className = comp.getClass().getName();
-    
-    // Shield remain the same...
-    if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || className.contains("ErrorTable")) { 
-        return; 
+    if (comp == jeditor.getTextArea() || 
+        comp == jeditor.getTextArea().getPainter() || 
+        comp == jeditor.getConsole() ||
+        className.contains("ErrorTable") ||
+        className.contains("TextArea")) { 
+      return; 
     }
 
-    // TARGETING STUBBORN BLUE BARS
-    if (className.contains("EditorStatus") || className.contains("EditorFooter") || className.contains("Header")) {
-        if (comp instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-            jc.setOpaque(true);
-            jc.setBackground(c);
-            jc.setBorder(null);
-            
-            // This is the strongest FlatLaf override for stubborn bars
-            jc.putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
-            
-            // Force every sub-label (like "Problem", "Tab") to also be pink
-            for (java.awt.Component child : jc.getComponents()) {
-                child.setBackground(c);
-                if (child instanceof javax.swing.JComponent) {
-                    ((javax.swing.JComponent)child).setOpaque(false); // Let pink shine through
-                }
-            }
+    // 2. TARGET THE "STUBBORN" CLASSES FROM THE SPY LIST
+    boolean isStubborn = className.contains("EditorStatus") || 
+                        className.contains("EditorFooter") || 
+                        className.contains("EditorHeader") ||
+                        className.contains("MarkerColumn") ||
+                        className.contains("Toolbar");
+
+    if (isStubborn || comp instanceof javax.swing.JToolBar) {
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        jc.setBorder(null);
+        
+        // THIS IS THE KEY: Tell FlatLaf to force this color
+        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+        jc.putClientProperty("FlatLaf.style", "background: " + hex);
+        
+        // Power-wash the children (buttons and labels inside the bars)
+        for (java.awt.Component child : jc.getComponents()) {
+          child.setBackground(c);
+          if (child instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent)child).putClientProperty("FlatLaf.style", "background: " + hex);
+            ((javax.swing.JComponent)child).setOpaque(false); 
+          }
         }
-    } else if (comp instanceof javax.swing.JPanel || className.contains("Box")) {
-        // Only color panels that are part of the main Editor, not popups
-        comp.setBackground(c);
+      }
+    } 
+    // 3. TARGET THE TABS AT THE TOP
+    else if (className.contains("Tab")) {
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+        ((javax.swing.JComponent)comp).setBorder(null);
+      }
     }
 
-    // Recursive search continues...
+    // 4. RECURSIVE SEARCH
     if (comp instanceof java.awt.Container) {
-        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-            vanquishBlueSurgically(child, c);
-        }
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        vanquishBlueSurgically(child, c);
+      }
     }
   }
 
