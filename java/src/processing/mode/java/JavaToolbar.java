@@ -98,60 +98,63 @@ public class JavaToolbar extends EditorToolbar {
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
-    
-    // --- OPTION 0: ONLY THE BLUE EDGES & TOOLBAR ---
-    if (optionIndex == 0) { 
-        this.setBackground(pickedColor);
-        processing.app.Preferences.set("header.color", hex);
-        
-        java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
-        if (window != null) {
-            vanquishBlue(window, pickedColor); // This only targets Panels/Borders
-        }
+
+    if (optionIndex == 0) { // Outer Theme (Borders/Header)
+      processing.app.Preferences.set("header.color", hex);
+      
+      // Target the main window
+      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+      if (window != null) {
+        // Use the surgical vanquisher
+        vanquishBlueSurgically(window, pickedColor);
+      }
     } 
-    // --- OPTION 1: ONLY THE TEXT EDITOR ---
-    else if (optionIndex == 1) { 
-        jeditor.getTextArea().getPainter().setBackground(pickedColor);
-        processing.app.Preferences.set("editor.bgcolor", hex);
-        
-        Color contrast = getContrastColor(pickedColor);
-        jeditor.getTextArea().getPainter().setForeground(contrast);
+    else if (optionIndex == 1) { // Inner Coding Area ONLY
+      jeditor.getTextArea().getPainter().setBackground(pickedColor);
+      processing.app.Preferences.set("editor.bgcolor", hex);
+      
+      Color contrast = getContrastColor(pickedColor);
+      jeditor.getTextArea().getPainter().setForeground(contrast);
     }
-    // --- OPTION 2: ONLY THE CONSOLE ---
-    else if (optionIndex == 2) {
-        jeditor.getConsole().setBackground(pickedColor);
-        processing.app.Preferences.set("console.color", hex);
+    else if (optionIndex == 2) { // Console ONLY
+      jeditor.getConsole().setBackground(pickedColor);
+      processing.app.Preferences.set("console.color", hex);
     }
 
-    processing.app.Preferences.save(); // Silent save
+    processing.app.Preferences.save();
     
-    // Refresh the whole UI tree so the changes "stick" immediately
+    // Refresh the UI tree to apply UIManager changes
     javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
   }
 
-  // The "Vanquisher" helper method
-  private void vanquishBlue(java.awt.Component comp, Color c) {
-    // Force the color
+  private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
+    // --- PROTECTION LAYER ---
+    // If this component is the Text Area or the Console, DO NOT color it.
+    if (comp == jeditor.getTextArea() || 
+        comp == jeditor.getTextArea().getPainter() || 
+        comp == jeditor.getConsole()) {
+      return; // Stop here and don't go deeper into this specific part
+    }
+
+    // Color the background of panels and headers
     comp.setBackground(c);
     
     if (comp instanceof javax.swing.JComponent) {
-        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-        
-        // This kills the blue "Theme" images that sit on top
-        jc.setOpaque(true);
-        jc.setBorder(null); 
-        
-        // If it's the specific header or status bar, we force a repaint
-        String name = jc.getClass().getName();
-        if (name.contains("Header") || name.contains("Status") || name.contains("Toolbar")) {
-            jc.setBackground(c);
-        }
+      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      jc.setOpaque(true);
+      
+      // Kills the blue borders/images on the sides and tab bar
+      String name = jc.getClass().getName();
+      if (name.contains("Header") || name.contains("Status") || name.contains("Tab")) {
+        jc.setBorder(null);
+      }
     }
-    
+
+    // Keep digging for more blue pixels, unless we are in a protected zone
     if (comp instanceof java.awt.Container) {
-        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-            vanquishBlue(child, c);
-        }
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        vanquishBlueSurgically(child, c);
+      }
     }
   }
 
