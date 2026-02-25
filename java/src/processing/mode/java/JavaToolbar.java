@@ -129,37 +129,43 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     // --- PROTECTION LAYER ---
+    // If the component is one of these, do NOT let the Outer Theme change it
+    String className = comp.getClass().getName();
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
-        comp == jeditor.getConsole()) {
+        comp == jeditor.getConsole() ||
+        className.contains("ErrorTable") || 
+        className.contains("Table")) { 
       return; 
     }
 
-    // Target the specific Processing UI classes by their internal names
-    String className = comp.getClass().getName();
+    // Color the background
+    comp.setBackground(c);
     
-    // If it's one of the "Stubborn Four", we force it to be opaque and pink
-    if (className.contains("EditorHeader") || 
-        className.contains("EditorStatus") || 
-        className.contains("EditorFooter") || 
-        className.contains("EditorToolbar") ||
-        className.contains("LineNumberGutter")) { // Includes that side-strip
-        
-      if (comp instanceof javax.swing.JComponent) {
-        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-        jc.setOpaque(true);
+    if (comp instanceof javax.swing.JComponent) {
+      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      jc.setOpaque(true);
+      
+      // PRECISION TARGETING FOR THE REMAINING BLUE
+      // This hunts for the specific bars seen in your screenshots
+      if (className.contains("EditorHeader") || 
+          className.contains("EditorStatus") || 
+          className.contains("EditorFooter") || 
+          className.contains("Tab") ||
+          className.contains("Gutter")) {
+        jc.setBorder(null); // Removes the blue divider lines
         jc.setBackground(c);
-        jc.setBorder(null); // Kills the thin blue lines
       }
-    } else {
-      // For everything else (panels, boxes), just set the background normally
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
-        ((javax.swing.JComponent)comp).setOpaque(true);
+      
+      // Fix for the very bottom "Console/Errors" button bar
+      if (className.contains("Footer")) {
+        for (java.awt.Component child : jc.getComponents()) {
+            child.setBackground(c);
+        }
       }
     }
 
-    // Keep digging
+    // Keep digging for more blue pixels
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
