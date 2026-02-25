@@ -97,53 +97,59 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    // 1. Convert to Hex for the settings file
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
-    if (optionIndex == 0) { // Outer Theme (The Blue Bar)
-        this.setBackground(pickedColor);
-        this.setOpaque(true);
-        
-        // Target the specific preference keys for the header
+    if (optionIndex == 0) { // Outer Theme (The Blue Bar/Header)
         processing.app.Preferences.set("header.color", hex);
         
-        // Color the parent container (the whole border)
-        java.awt.Container parent = this.getParent();
-        if (parent != null) {
-            parent.setBackground(pickedColor);
-            if (parent instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)parent).setOpaque(true);
+        // 1. Paint the toolbar and ALL its internal boxes
+        this.setBackground(pickedColor);
+        this.setOpaque(true);
+        if (box != null) {
+            box.setBackground(pickedColor);
+            box.setOpaque(true);
+        }
+
+        // 2. Climb up and paint the "Whole Border"
+        java.awt.Container p = this.getParent();
+        while (p != null) {
+            p.setBackground(pickedColor);
+            if (p instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)p).setOpaque(true);
             }
+            // Stop once we hit the main editor frame
+            if (p.getClass().getName().endsWith("Editor")) break;
+            p = p.getParent();
         }
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
         processing.app.Preferences.set("editor.bgcolor", hex);
         
-        // Handle text contrast
         Color contrast = getContrastColor(pickedColor);
-        String textHex = String.format("#%02x%02x%02x", contrast.getRed(), contrast.getGreen(), contrast.getBlue());
-        processing.app.Preferences.set("editor.fgcolor", textHex);
+        jeditor.getTextArea().getPainter().setForeground(contrast);
     } else if (optionIndex == 2) { // Console
-        jeditor.getConsole().setBackground(pickedColor);
         processing.app.Preferences.set("console.color", hex);
         
-        // Target the viewport to fill the space
-        java.awt.Container viewport = jeditor.getConsole().getParent();
-        if (viewport != null) {
-            viewport.setBackground(pickedColor);
+        // Target the console and its "Viewport" container
+        javax.swing.JComponent console = (javax.swing.JComponent)jeditor.getConsole();
+        console.setBackground(pickedColor);
+        console.setOpaque(true);
+        
+        if (console.getParent() != null) {
+            console.getParent().setBackground(pickedColor);
+            ((javax.swing.JComponent)console.getParent()).setOpaque(true);
         }
     }
 
-    // 2. Save the settings and trigger a global refresh
+    // Save silently in the background
     processing.app.Preferences.save();
-    jeditor.getBase().handlePrefs(); 
 
-    // 3. Force the visual repaint
+    // Trigger immediate redraw without opening the window
+    this.revalidate();
     this.repaint();
     jeditor.getTextArea().repaint();
-    if (this.getParent() != null) {
-        this.getParent().repaint();
-    }
+    jeditor.getConsole().repaint();
+    if (this.getParent() != null) this.getParent().repaint();
   }
 
   private Color getContrastColor(Color color) {
