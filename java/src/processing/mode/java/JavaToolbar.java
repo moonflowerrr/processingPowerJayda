@@ -131,7 +131,7 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
-    // 1. PROTECTION LAYER
+    // 1. THE SHIELD
     String className = comp.getClass().getName();
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
@@ -141,31 +141,27 @@ public class JavaToolbar extends EditorToolbar {
       return; 
     }
 
-    // 2. THE FORCEFUL OVERRIDE
-    // This targets any JPanel, Toolbar, or Header/Footer area
+    // 2. THE SPY (Check your Terminal/Console output for these names!)
+    // This will help us identify exactly what that blue bar is called
+    System.out.println("Targeting: " + className);
+
+    // 3. THE FORCEFUL OVERRIDE
     if (comp instanceof javax.swing.JPanel || 
         comp instanceof javax.swing.JToolBar ||
         className.contains("Header") || 
         className.contains("Footer") || 
-        className.contains("Status")) {
+        className.contains("Status") ||
+        className.contains("Tab")) {
         
       comp.setBackground(c);
       
       if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         jc.setOpaque(true);
-        jc.setBorder(null); // Removes those blue divider lines
+        jc.setBorder(null); 
         
-        // KILL THE UI DELEGATE: This prevents the "Blue Theme" from redrawing itself
-        jc.setUI(new javax.swing.plaf.PanelUI() {}); 
-      }
-    }
-
-    // 3. TARGET THE TABS & BUTTONS
-    if (className.contains("Tab") || comp instanceof javax.swing.AbstractButton) {
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
-          ((javax.swing.JComponent)comp).setOpaque(false);
+        // Instead of setUI, we reset it to the basic look
+        jc.updateUI(); 
       }
     }
 
