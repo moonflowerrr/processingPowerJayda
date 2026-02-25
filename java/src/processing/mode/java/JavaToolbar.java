@@ -97,26 +97,33 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
+    // Convert color to Hex
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
     if (optionIndex == 1) { // Inner Coding Area
       processing.app.Preferences.set("editor.bgcolor", hex);
       
-      // Calculate and set the contrast text color
+      // Acceptance Criteria: Text must change between white and black
       Color textColor = getContrastColor(pickedColor);
       String textHex = String.format("#%02x%02x%02x", textColor.getRed(), textColor.getGreen(), textColor.getBlue());
       processing.app.Preferences.set("editor.fgcolor", textHex);
       
-      // --- THIS IS THE MAGIC LINE ---
-      // This tells the actual text editor to reload its theme colors immediately
-      jeditor.getTextArea().getPainter().setTheme(new processing.app.syntax.Theme(processing.app.Preferences.getColor("editor.bgcolor")));
-    } 
+    } else if (optionIndex == 0) { // Outer Theme
+      processing.app.Preferences.set("header.color", hex);
+    } else if (optionIndex == 2) { // Console
+      processing.app.Preferences.set("console.color", hex);
+    }
+
+    // Acceptance Criteria: The color change must be saved
+    processing.app.Preferences.save(); 
     
-    // Save to the preferences.txt file
-    jeditor.getBase().handlePrefs(); 
+    // Acceptance Criteria: Immediately display
+    // This triggers Processing's internal theme refresh logic
+    jeditor.handlePrefs(); 
     
-    // Force the window to redraw
-    jeditor.repaint(); 
+    // Force the UI components to redraw with the new preferences
+    jeditor.getTextArea().repaint();
+    jeditor.repaint();
   }
 
   private Color getContrastColor(Color color) {
