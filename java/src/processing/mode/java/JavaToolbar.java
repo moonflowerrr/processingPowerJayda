@@ -98,12 +98,15 @@ public class JavaToolbar extends EditorToolbar {
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     if (optionIndex == 0) { // Outer Theme (The Blue Bar)
-        // Change the toolbar itself
+        // Color the toolbar itself
+        this.setOpaque(true);
         this.setBackground(pickedColor);
-        // Change the container that holds the buttons
-        if (box != null) {
-            box.setOpaque(true);
-            box.setBackground(pickedColor);
+        
+        // Target the entire header area (the "whole border" at the top)
+        if (this.getParent() != null) {
+            this.getParent().setBackground(pickedColor);
+            ((javax.swing.JComponent)this.getParent()).setOpaque(true);
+            this.getParent().repaint(); // Added: Ensures the whole top bar refreshes
         }
     } else if (optionIndex == 1) { // Inner Coding Area
         // Target the background of the actual text editor
@@ -113,8 +116,25 @@ public class JavaToolbar extends EditorToolbar {
         Color textColor = getContrastColor(pickedColor);
         jeditor.getTextArea().getPainter().setForeground(textColor);
     } else if (optionIndex == 2) { // Console
-        // Target the console area at the bottom
+        // Target the actual text area of the console
+        jeditor.getConsole().setOpaque(true);
         jeditor.getConsole().setBackground(pickedColor);
+        
+        // Target the viewport (the part that actually shows the color)
+        if (jeditor.getConsole().getParent() != null) {
+            jeditor.getConsole().getParent().setBackground(pickedColor);
+            ((javax.swing.JComponent)jeditor.getConsole().getParent()).setOpaque(true);
+            viewport.repaint(); // Added: Refreshes the green area you wanted
+        }
+    }
+
+    // Acceptance Criteria: Text must change between white and black
+    Color contrast = getContrastColor(pickedColor);
+    if (optionIndex == 0) {
+        // This updates the text labels in the toolbar to be readable
+        for (java.awt.Component c : this.getComponents()) {
+            c.setForeground(contrast);
+        }
     }
 
     // Acceptance Criteria: The chosen color must immediately display
