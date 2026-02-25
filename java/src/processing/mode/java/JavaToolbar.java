@@ -99,14 +99,17 @@ public class JavaToolbar extends EditorToolbar {
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
-    if (optionIndex == 0) { // Outer Theme (The Blue Bar + All Borders)
-        // 1. Tell the entire App's UI Manager to use this color for panels and headers
+    if (optionIndex == 0) { // Outer Theme
+        // 1. Update the UIManager defaults for the whole app
         javax.swing.UIManager.put("Panel.background", pickedColor);
-        javax.swing.UIManager.put("Control.background", pickedColor);
         javax.swing.UIManager.put("ToolBar.background", pickedColor);
+        javax.swing.UIManager.put("ScrollBar.background", pickedColor);
         
-        // 2. Force the change onto the current window components
-        updateComponentTree(javax.swing.SwingUtilities.getRoot(this), pickedColor);
+        // 2. Run the "Vanquisher" on the entire window tree
+        java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (window != null) {
+            vanquishBlue(window, pickedColor);
+        }
         
         processing.app.Preferences.set("header.color", hex);
     } else if (optionIndex == 1) { // Inner Coding Area
@@ -117,24 +120,33 @@ public class JavaToolbar extends EditorToolbar {
         jeditor.getTextArea().getPainter().setForeground(contrast);
     }
 
-    // Save silently
     processing.app.Preferences.save();
-
-    // 3. Final Refresh
+    // This forces the UI to re-read the UIManager colors we just set
     javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
   }
 
-  // Add this helper method below applyCustomColor to hunt down every blue pixel
-  private void updateComponentTree(java.awt.Component comp, Color c) {
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
-          ((javax.swing.JComponent)comp).setOpaque(true);
-      }
-      if (comp instanceof java.awt.Container) {
-          for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-              updateComponentTree(child, c);
-          }
-      }
+  // The "Vanquisher" helper method
+  private void vanquishBlue(java.awt.Component comp, Color c) {
+    // Force the background color
+    comp.setBackground(c);
+    
+    if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        
+        // MAGIC LINE: If it's a Header or Tab bar, hide the blue SVG images
+        String name = jc.getClass().getName();
+        if (name.contains("EditorHeader") || name.contains("Status") || name.contains("Tab")) {
+            jc.setBorder(null); // Removes blue border lines
+            jc.setOpaque(true); // Ensures our pink shows
+        }
+    }
+    
+    if (comp instanceof java.awt.Container) {
+        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+            vanquishBlue(child, c);
+        }
+    }
   }
 
   private Color getContrastColor(Color color) {
