@@ -37,7 +37,7 @@ import java.awt.Color;
 import javax.swing.JColorChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.GridLayout;
+import java.awt.GridLayout;
 
 
 public class JavaToolbar extends EditorToolbar {
