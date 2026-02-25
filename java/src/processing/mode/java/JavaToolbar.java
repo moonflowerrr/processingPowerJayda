@@ -124,6 +124,23 @@ public class JavaToolbar extends EditorToolbar {
     };
     outgoing.add(stopButton);
 
+    // --- ADD THE THEME BUTTON HERE ---
+    EditorButton themeButton = new EditorButton(this,
+                                  "/lib/toolbar/run", 
+                                  "Toggle Theme") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        // Toggle the preference
+        boolean isDark = processing.app.Preferences.getBoolean("editor.highcontrast");
+        processing.app.Preferences.setBoolean("editor.highcontrast", !isDark);
+        
+        // Update the app and the toolbar UI
+        jeditor.getBase().handlePrefs(); 
+        updateTheme();
+      }
+    };
+    outgoing.add(themeButton);
+
     return outgoing;
   }
 
