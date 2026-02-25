@@ -97,42 +97,48 @@ public class JavaToolbar extends EditorToolbar {
   }
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
-    // 1. Convert to Hex for the Theme engine
+    // 1. Convert to Hex for the settings file
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
-    if (optionIndex == 0) { // Outer Theme (The Blue Bar/Header)
-        // Direct UI changes
+    if (optionIndex == 0) { // Outer Theme (The Blue Bar)
         this.setBackground(pickedColor);
         this.setOpaque(true);
         
-        // Update the actual Theme constants
-        processing.app.Theme.set("toolbar.bgcolor", hex);
-        processing.app.Theme.set("header.bgcolor", hex);
+        // Target the specific preference keys for the header
+        processing.app.Preferences.set("header.color", hex);
         
-        // Target buttons specifically
-        for (java.awt.Component c : this.getComponents()) {
-            c.setBackground(pickedColor);
+        // Color the parent container (the whole border)
+        java.awt.Container parent = this.getParent();
+        if (parent != null) {
+            parent.setBackground(pickedColor);
+            if (parent instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent)parent).setOpaque(true);
+            }
         }
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
-        Color contrast = getContrastColor(pickedColor);
-        jeditor.getTextArea().getPainter().setForeground(contrast);
         processing.app.Preferences.set("editor.bgcolor", hex);
+        
+        // Handle text contrast
+        Color contrast = getContrastColor(pickedColor);
+        String textHex = String.format("#%02x%02x%02x", contrast.getRed(), contrast.getGreen(), contrast.getBlue());
+        processing.app.Preferences.set("editor.fgcolor", textHex);
     } else if (optionIndex == 2) { // Console
         jeditor.getConsole().setBackground(pickedColor);
-        processing.app.Theme.set("console.color", hex);
+        processing.app.Preferences.set("console.color", hex);
         
-        // Reach into the ScrollPane Viewport
+        // Target the viewport to fill the space
         java.awt.Container viewport = jeditor.getConsole().getParent();
         if (viewport != null) {
             viewport.setBackground(pickedColor);
         }
     }
 
-    // 2. The "Nuclear Option": Tell the Editor to rebuild its UI
-    jeditor.handlePrefs(); 
-    
-    // 3. Force the visual refresh
+    // 2. Save the settings and trigger a global refresh
+    processing.app.Preferences.save();
+    jeditor.getBase().handlePrefs(); 
+
+    // 3. Force the visual repaint
     this.repaint();
     jeditor.getTextArea().repaint();
     if (this.getParent() != null) {
