@@ -100,15 +100,17 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme (Borders/Header)
+      // ADD THESE TWO LINES HERE:
+      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
+      javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
 
       processing.app.Preferences.set("header.color", hex);
       
-      // Target the main window
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-        // Use the surgical vanquisher
         vanquishBlueSurgically(window, pickedColor);
       }
     } 
@@ -126,46 +128,44 @@ public class JavaToolbar extends EditorToolbar {
 
     processing.app.Preferences.save();
     
-    // Refresh the UI tree to apply UIManager changes
     javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
-    // 1. THE SHIELD
+    // 1. THE SHIELD (Add MarkerColumn to protection if you want it to stay blue/gray)
     String className = comp.getClass().getName();
     if (comp == jeditor.getTextArea() || 
         comp == jeditor.getTextArea().getPainter() || 
         comp == jeditor.getConsole() ||
-        className.contains("ErrorTable") || 
-        className.contains("Table")) { 
+        className.contains("ErrorTable")) { 
       return; 
     }
 
-    // 2. THE SPY (Check your Terminal/Console output for these names!)
-    // This will help us identify exactly what that blue bar is called
-    System.out.println("Targeting: " + className);
+    // 2. FLATLAF UI OVERRIDES (The "Secret Sauce")
+    // We tell the theme engine to use your pink for these specific FlatLaf parts
+    javax.swing.UIManager.put("EditorPane.background", c);
+    javax.swing.UIManager.put("ScrollPane.background", c);
+    
+    // 3. TARGETING THE SPY LIST
+    boolean isTarget = className.contains("EditorStatus") || 
+                      className.contains("EditorFooter") || 
+                      className.contains("MarkerColumn") || 
+                      className.contains("Toolbar") ||
+                      className.contains("Box") ||
+                      className.contains("Panel");
 
-    // 3. THE FORCEFUL OVERRIDE
-    if (comp instanceof javax.swing.JPanel || 
-        comp instanceof javax.swing.JToolBar ||
-        className.contains("Header") || 
-        className.contains("Footer") || 
-        className.contains("Status") ||
-        className.contains("Tab")) {
-        
+    if (isTarget) {
       comp.setBackground(c);
-      
       if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         jc.setOpaque(true);
-        jc.setBorder(null); 
-        
-        // Instead of setUI, we reset it to the basic look
-        jc.updateUI(); 
+        jc.setBorder(null);
+        // We use this to force FlatLaf to accept the manual color change
+        jc.putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
       }
     }
 
-    // 4. RECURSIVE SEARCH
+    // 4. DIG DEEPER
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c);
