@@ -100,11 +100,17 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
+      // THE GLOBAL FORCE (What made you say "yayyy" earlier!)
+      javax.swing.UIManager.put("Panel.background", pickedColor);
+      javax.swing.UIManager.put("ToolBar.background", pickedColor);
+      javax.swing.UIManager.put("StatusBar.background", pickedColor);
+      javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      
       processing.app.Preferences.set("header.color", hex);
-
+      
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-          vanquishBlueSurgically(window, pickedColor);
+        vanquishBlueSurgically(window, pickedColor);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
@@ -122,38 +128,26 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     String className = comp.getClass().getName();
-    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD (Protect the code/console)
-    if (comp == jeditor.getTextArea() || 
-        comp == jeditor.getConsole() ||
-        className.contains("ErrorTable")) { 
-      return; 
+    // 1. THE SHIELD
+    if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || 
+        className.contains("ErrorTable") || className.contains("TextArea")) {
+        return;
     }
 
-    // 2. THE LOCAL PAINT
-    // We target Panels, Toolbars, and the specific Processing UI classes
-    if (comp instanceof javax.swing.JPanel || 
-        comp instanceof javax.swing.JToolBar ||
-        className.contains("Editor") || 
-        className.contains("Status") || 
-        className.contains("Footer")) {
+    // 2. THE DIRECT PAINT
+    comp.setBackground(c);
+    if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        jc.setBorder(null);
         
-        comp.setBackground(c);
-        
-        if (comp instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-            jc.setOpaque(true);
-            
-            // This is the FlatLaf "Safe" style - no borderWidth to cause errors!
-            jc.putClientProperty("FlatLaf.style", "background: " + hex);
-            
-            // Manually kill the blue borders without using the style string
-            jc.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        }
+        // This locks the color in without the console errors
+        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+        jc.putClientProperty("FlatLaf.style", "background: " + hex);
     }
 
-    // 3. RECURSE (Keep digging through the layers)
+    // 3. RECURSE
     if (comp instanceof java.awt.Container) {
         for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
             vanquishBlueSurgically(child, c);
