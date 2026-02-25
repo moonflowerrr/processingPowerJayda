@@ -100,19 +100,15 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
-      // We REMOVE the global Panel.background line to save the popups!
-    
-      // These only affect the technical "decoration" colors
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
-      javax.swing.UIManager.put("Separator.foreground", pickedColor);
+      // We REMOVE the global Panel.background line entirely.
+      // This will make the "Pick your color" window stay normal gray.
       
       processing.app.Preferences.set("header.color", hex);
       
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-        // We let the vanquisher handle the main window panels locally
-        vanquishBlueSurgically(window, pickedColor);
+          // We go straight to the surgical strike
+          vanquishBlueSurgically(window, pickedColor);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
@@ -132,28 +128,36 @@ public class JavaToolbar extends EditorToolbar {
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // THE SHIELD
-    if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || 
-        className.contains("ErrorTable") || className.contains("TextArea")) {
-        return;
+    // 1. THE SHIELD (Protecting the code/console areas)
+    if (comp == jeditor.getTextArea() || 
+        comp == jeditor.getTextArea().getPainter() || 
+        comp == jeditor.getConsole() ||
+        className.contains("ErrorTable") ||
+        className.contains("TextArea")) { 
+      return; 
     }
 
-    // THE LOCAL PAINT (This targets the component directly, not the whole app)
-    if (comp instanceof javax.swing.JPanel || comp instanceof javax.swing.JToolBar || 
-        className.contains("Status") || className.contains("Footer") || className.contains("Header")) {
+    // 2. THE LOCAL OVERRIDE
+    // We apply pink to virtually everything else in the main window
+    if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         
-        comp.setBackground(c);
+        // This is the strongest "local" command in FlatLaf.
+        // It's like an "!important" tag in CSS.
+        jc.putClientProperty("FlatLaf.style", "background: " + hex + "; " +
+                           "borderWidth: 0; " +
+                           "focusColor: " + hex);
         
-        if (comp instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-            jc.setOpaque(true);
-            jc.setBorder(null);
-            // This is the "Lock" - but only for THIS specific component!
-            jc.putClientProperty("FlatLaf.style", "background: " + hex);
+        jc.setBackground(c);
+        jc.setOpaque(true);
+        
+        // Specifically target labels (like "Console" or "Line 1") inside these bars
+        if (comp instanceof javax.swing.JLabel) {
+            jc.setOpaque(false); // Let the parent's pink shine through
         }
     }
 
-    // RECURSE
+    // 3. RECURSE
     if (comp instanceof java.awt.Container) {
         for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
             vanquishBlueSurgically(child, c);
