@@ -144,6 +144,25 @@ abstract public class EditorToolbar extends JPanel implements KeyListener {
         handleStop();
       }
     };
+
+    // --- ADDED THEME TOGGLE BUTTON BELOW ---
+    EditorButton themeButton = new EditorButton(this,
+                                  "/lib/toolbar/run", // Using run icon for now
+                                  "Toggle Theme") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        // Simple logic to toggle high contrast (built-in dark mode)
+        boolean isDark = processing.app.Preferences.getBoolean("editor.highcontrast");
+        processing.app.Preferences.setBoolean("editor.highcontrast", !isDark);
+        
+        // Tell the base to update the theme for all windows
+        base.handlePrefs(); 
+        
+        // Refresh the toolbar look
+        updateTheme();
+      }
+    };
+    
     return new ArrayList<>(Arrays.asList(runButton, stopButton));
   }
 
