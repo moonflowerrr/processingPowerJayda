@@ -100,17 +100,19 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
-      // Global force - This is what makes the "strips" turn pink
-      javax.swing.UIManager.put("Panel.background", pickedColor);
-      javax.swing.UIManager.put("ToolBar.background", pickedColor);
-      javax.swing.UIManager.put("StatusBar.background", pickedColor);
+      // We REMOVE the global Panel.background line to save the popups!
+    
+      // These only affect the technical "decoration" colors
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
+      javax.swing.UIManager.put("Separator.foreground", pickedColor);
       
       processing.app.Preferences.set("header.color", hex);
       
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-          vanquishBlueSurgically(window, pickedColor);
+        // We let the vanquisher handle the main window panels locally
+        vanquishBlueSurgically(window, pickedColor);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
@@ -128,25 +130,27 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     String className = comp.getClass().getName();
-    
-    // THE SHIELD (Add Table and TextArea to keep them safe)
+    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+
+    // THE SHIELD
     if (comp == jeditor.getTextArea() || comp == jeditor.getConsole() || 
         className.contains("ErrorTable") || className.contains("TextArea")) {
         return;
     }
 
-    // THE FORCEFUL PAINT
-    // We target everything that isn't protected to ensure no blue remains
-    comp.setBackground(c);
-    
-    if (comp instanceof javax.swing.JComponent) {
-        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-        jc.setOpaque(true); // Forces the pink to show through
-        jc.setBorder(null); // Removes blue divider lines
+    // THE LOCAL PAINT (This targets the component directly, not the whole app)
+    if (comp instanceof javax.swing.JPanel || comp instanceof javax.swing.JToolBar || 
+        className.contains("Status") || className.contains("Footer") || className.contains("Header")) {
         
-        // This is the "Lock" that prevents FlatLaf from reverting to blue
-        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-        jc.putClientProperty("FlatLaf.style", "background: " + hex);
+        comp.setBackground(c);
+        
+        if (comp instanceof javax.swing.JComponent) {
+            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+            jc.setOpaque(true);
+            jc.setBorder(null);
+            // This is the "Lock" - but only for THIS specific component!
+            jc.putClientProperty("FlatLaf.style", "background: " + hex);
+        }
     }
 
     // RECURSE
