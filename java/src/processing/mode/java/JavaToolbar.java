@@ -100,45 +100,41 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     
     if (optionIndex == 0) { // Outer Theme (The Blue Bar + All Borders)
-        // 1. Paint this toolbar
-        this.setBackground(pickedColor);
-        this.setOpaque(true);
-
-        // 2. The "Blue Vanquisher": Climb up and paint every parent container
-        java.awt.Container ancestor = this.getParent();
-        while (ancestor != null) {
-            ancestor.setBackground(pickedColor);
-            if (ancestor instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent)ancestor).setOpaque(true);
-            }
-            // Stop if we hit the main Window frame
-            if (ancestor instanceof java.awt.Window) break;
-            ancestor = ancestor.getParent();
-        }
+        // 1. Tell the entire App's UI Manager to use this color for panels and headers
+        javax.swing.UIManager.put("Panel.background", pickedColor);
+        javax.swing.UIManager.put("Control.background", pickedColor);
+        javax.swing.UIManager.put("ToolBar.background", pickedColor);
         
-        // 3. Update the preference so it's remembered
+        // 2. Force the change onto the current window components
+        updateComponentTree(javax.swing.SwingUtilities.getRoot(this), pickedColor);
+        
         processing.app.Preferences.set("header.color", hex);
-
     } else if (optionIndex == 1) { // Inner Coding Area
         jeditor.getTextArea().getPainter().setBackground(pickedColor);
         processing.app.Preferences.set("editor.bgcolor", hex);
         
-        // Adjust text contrast automatically
         Color contrast = getContrastColor(pickedColor);
         jeditor.getTextArea().getPainter().setForeground(contrast);
     }
 
-    // Save silently—this prevents the Preferences window from opening
+    // Save silently
     processing.app.Preferences.save();
 
-    // Force a deep refresh of the UI
-    this.revalidate();
-    this.repaint();
-    jeditor.getTextArea().repaint();
-    
-    // Refresh the top-level window to show the new border colors
-    java.awt.Component top = javax.swing.SwingUtilities.getRoot(this);
-    if (top != null) top.repaint();
+    // 3. Final Refresh
+    javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
+  }
+
+  // Add this helper method below applyCustomColor to hunt down every blue pixel
+  private void updateComponentTree(java.awt.Component comp, Color c) {
+      comp.setBackground(c);
+      if (comp instanceof javax.swing.JComponent) {
+          ((javax.swing.JComponent)comp).setOpaque(true);
+      }
+      if (comp instanceof java.awt.Container) {
+          for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+              updateComponentTree(child, c);
+          }
+      }
   }
 
   private Color getContrastColor(Color color) {
