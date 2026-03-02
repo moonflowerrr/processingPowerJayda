@@ -101,8 +101,8 @@ public class JavaToolbar extends EditorToolbar {
 
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
-    
-      // Set global defaults for the theme engine
+      
+      // Global UI defaults
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ScrollBar.background", pickedColor);
       
@@ -113,15 +113,11 @@ public class JavaToolbar extends EditorToolbar {
       if (window != null) {
         vanquishBlueSurgically(window, pickedColor);
       }
-    } 
-    else if (optionIndex == 1) { // Inner Coding Area
-      // We must set the preference so updateTheme() doesn't reset it to white!
+    } else if (optionIndex == 1) { // Inner Theme
       processing.app.Preferences.set("editor.bgcolor", hex);
-      
       jeditor.getTextArea().setBackground(pickedColor);
       jeditor.getTextArea().getPainter().setBackground(pickedColor);
-    }
-    else if (optionIndex == 2) { // Console
+    } else if (optionIndex == 2) { // Console
       // Remove jeditor.getConsole() from the shield so we CAN paint it
       if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
           return; 
@@ -144,36 +140,36 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     if (comp == null) return;
+    
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD (Protect the main code area, but NOT the console)
+    // 1. THE SHIELD (Protect the code area text, but let the console through)
     if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
-        return; 
+      return; 
     }
 
     // 2. TARGET THE CONSOLE & PANELS
-    // If it's a console component or a general panel, paint it!
+    // We check for "EditorConsole", "JTextPane" (the console's heart), or general "JPanel"
     if (className.contains("EditorConsole") || 
         comp instanceof javax.swing.JTextPane || 
         comp instanceof javax.swing.JPanel) {
         
-        comp.setBackground(c);
-        
-        if (comp instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-            jc.setOpaque(true);
-            jc.putClientProperty("FlatLaf.style", "background: " + hex);
-            // This removes the black border often found around the console
-            jc.setBorder(null);
-        }
+      comp.setBackground(c);
+      
+      if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        jc.putClientProperty("FlatLaf.style", "background: " + hex);
+        jc.setBorder(null); // Kill the black console borders
+      }
     }
 
-    // 3. RECURSE (Keep digging through the UI layers)
+    // 3. RECURSE (Go deeper into the folder structure of the UI)
     if (comp instanceof java.awt.Container) {
-        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-            vanquishBlueSurgically(child, c);
-        }
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        vanquishBlueSurgically(child, c);
+      }
     }
   }
 
