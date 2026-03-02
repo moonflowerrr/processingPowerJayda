@@ -100,21 +100,31 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
-      // FORCE THE THEME ENGINE
+      // 1. Set the global forces
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
       javax.swing.UIManager.put("StatusBar.background", pickedColor);
       
-      // KILL THE BLUE HOVER/SELECTION
+      // 2. Kill the blue hover/selection/borders
       javax.swing.UIManager.put("List.selectionBackground", pickedColor);
       javax.swing.UIManager.put("Component.focusColor", pickedColor);
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
       
+      // 3. Save the preference
       processing.app.Preferences.set("header.color", hex);
       
-      // Update the actual components
-      jeditor.rebuildHeader(); // Forces Header to reload theme
-      jeditor.getFooter().updateTheme(); // Forces Footer to reload theme
+      // 4. THE FIX: Force the UI to refresh
+      jeditor.rebuildHeader(); 
+      
+      // Since getFooter() is missing, we tell the whole editor 
+      // to update its theme, which includes the footer!
+      jeditor.updateTheme(); 
+      
+      // Apply the surgical paint to the window
+      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+      if (window != null) {
+          vanquishBlueSurgically(window, pickedColor);
+      }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
       jeditor.getTextArea().getPainter().setBackground(pickedColor);
