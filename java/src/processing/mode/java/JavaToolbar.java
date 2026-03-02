@@ -101,7 +101,8 @@ public class JavaToolbar extends EditorToolbar {
 
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
-      // Set global defaults
+    
+      // Set global defaults for the theme engine
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ScrollBar.background", pickedColor);
       
@@ -146,13 +147,13 @@ public class JavaToolbar extends EditorToolbar {
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD (Protect the code area, but NOT the console)
+    // 1. THE SHIELD (Protect the main code area, but NOT the console)
     if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
         return; 
     }
 
     // 2. TARGET THE CONSOLE & PANELS
-    // If it's a console component or a general panel, paint it pink!
+    // If it's a console component or a general panel, paint it!
     if (className.contains("EditorConsole") || 
         comp instanceof javax.swing.JTextPane || 
         comp instanceof javax.swing.JPanel) {
@@ -163,12 +164,12 @@ public class JavaToolbar extends EditorToolbar {
             javax.swing.JComponent jc = (javax.swing.JComponent) comp;
             jc.setOpaque(true);
             jc.putClientProperty("FlatLaf.style", "background: " + hex);
-            // This kills the black border often found around the console
+            // This removes the black border often found around the console
             jc.setBorder(null);
         }
     }
 
-    // 3. RECURSE (Keep digging)
+    // 3. RECURSE (Keep digging through the UI layers)
     if (comp instanceof java.awt.Container) {
         for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
             vanquishBlueSurgically(child, c);
