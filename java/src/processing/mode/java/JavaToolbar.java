@@ -100,39 +100,41 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
 
     if (optionIndex == 0) { // Outer Theme
-      // 1. Set the global forces
-      javax.swing.UIManager.put("Panel.background", pickedColor);
-      javax.swing.UIManager.put("ToolBar.background", pickedColor);
-      javax.swing.UIManager.put("StatusBar.background", pickedColor);
-      
-      // 2. Kill the blue hover/selection/borders
-      javax.swing.UIManager.put("List.selectionBackground", pickedColor);
-      javax.swing.UIManager.put("Component.focusColor", pickedColor);
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      
-      // 3. Save the preference
       processing.app.Preferences.set("header.color", hex);
+      // Add this to "lock" it in the UI Manager too
+      javax.swing.UIManager.put("Panel.background", pickedColor);
       
-      // 4. THE FIX: Force the UI to refresh
       jeditor.rebuildHeader(); 
+      jeditor.updateTheme(); // This redraws the whole window
       
-      // Since getFooter() is missing, we tell the whole editor 
-      // to update its theme, which includes the footer!
-      jeditor.updateTheme(); 
-      
-      // Apply the surgical paint to the window
+      // Surgical strike to keep it pink
       java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
           vanquishBlueSurgically(window, pickedColor);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
-      jeditor.getTextArea().getPainter().setBackground(pickedColor);
+      // We must set the preference so updateTheme() doesn't reset it to white!
       processing.app.Preferences.set("editor.bgcolor", hex);
+      
+      jeditor.getTextArea().setBackground(pickedColor);
+      jeditor.getTextArea().getPainter().setBackground(pickedColor);
     }
     else if (optionIndex == 2) { // Console
-      jeditor.getConsole().setBackground(pickedColor);
-      processing.app.Preferences.set("console.color", hex);
+      // Remove jeditor.getConsole() from the shield so we CAN paint it
+      if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
+          return; 
+      }
+
+      // 2. TARGET THE CONSOLE
+      if (className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane) {
+          comp.setBackground(c);
+          if (comp instanceof javax.swing.JComponent) {
+              ((javax.swing.JComponent)comp).setOpaque(true);
+              // This forces the "Black Hole" to become pink
+              ((javax.swing.JComponent)comp).putClientProperty("FlatLaf.style", "background: " + hex);
+          }
+      }
     }
 
     processing.app.Preferences.save();
