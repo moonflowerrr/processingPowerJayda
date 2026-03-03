@@ -103,19 +103,30 @@ public class JavaToolbar extends EditorToolbar {
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
       
-      // KILL THE BLUE ACCENTS
-      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
-      javax.swing.UIManager.put("Component.focusColor", pickedColor);
+      // 1. BACKGROUND COVERAGE
+      javax.swing.UIManager.put("Panel.background", pickedColor);
+      javax.swing.UIManager.put("ToolBar.background", pickedColor);
+      javax.swing.UIManager.put("MenuBar.background", pickedColor);
+      javax.swing.UIManager.put("Label.background", pickedColor);
+      javax.swing.UIManager.put("SplitPane.background", pickedColor);
       javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
       
-      jeditor.rebuildHeader();
+      // 2. KILL THE BLUE (Focus, Borders, and Accent Lines)
+      javax.swing.UIManager.put("Component.focusColor", pickedColor);
+      javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
       
-      // REMOVE the line that says: java.awt.Window window = ...
-      // Just use the 'window' that is already there:
+      // 3. TAB AREA (Selection and underlines)
+      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor); // Kills the blue line under tabs
+      
+      // 4. FLATLAF SPECIFIC (The "Nuclear" option for dividers)
+      javax.swing.UIManager.put("SplitPaneDivider.style", "background: " + hex);
+
+      jeditor.rebuildHeader();
       if (window != null) {
         vanquishBlueSurgically(window, pickedColor, 0);
-        javax.swing.SwingUtilities.updateComponentTreeUI(window);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
@@ -167,33 +178,34 @@ public class JavaToolbar extends EditorToolbar {
   // Helper to apply the actual pink paint
   private void paintComponentPink(java.awt.Component comp, Color c, String hex) {
     if (comp == null) return;
-    
-    String className = comp.getClass().getName();
     comp.setBackground(c);
     
-    // THE BLACK STRIP FIX (Dynamic Detection)
-    // This catches the 'Gutter', 'LineNumber', and 'Console' parts by name
-    if (className.contains("Gutter") || className.contains("LineNumber") || className.contains("EditorConsole")) {
-      comp.setBackground(c);
-      if (comp instanceof javax.swing.JComponent) {
-        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-        jc.setOpaque(true);
-        jc.putClientProperty("FlatLaf.style", "background: " + hex);
-      }
-    }
-
     if (comp instanceof javax.swing.JComponent) {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      jc.setOpaque(true);
+
+      // SAFE STYLE: We removed 'selectionBackground' to stop the SEVERE errors
+      jc.putClientProperty("FlatLaf.style", "background: " + hex);
       
-      // Target ScrollPanes specifically to kill the black backgrounds
+      // THE BLACK STRIP FIX (JScrollPane Guts)
       if (comp instanceof javax.swing.JScrollPane) {
         javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
+        
+        // Paint the viewport (The main area)
         sp.getViewport().setBackground(c);
+        sp.getViewport().setOpaque(true);
+        
+        // Paint the Row Header (The left-side strip)
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
-          // If the row header has a view (the strip), paint it too
-          if (sp.getRowHeader().getView() != null) {
-            sp.getRowHeader().getView().setBackground(c);
+          sp.getRowHeader().setOpaque(true);
+          
+          java.awt.Component rowView = sp.getRowHeader().getView();
+          if (rowView instanceof javax.swing.JComponent) {
+            javax.swing.JComponent jrv = (javax.swing.JComponent) rowView;
+            jrv.setBackground(c);
+            jrv.setOpaque(true);
+            jrv.putClientProperty("FlatLaf.style", "background: " + hex);
           }
         }
       }
