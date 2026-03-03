@@ -621,18 +621,25 @@ public abstract class Editor extends JFrame implements RunnerListener {
     // --- TARGET THE CODE GUTTER (Inner Strip) ---
     if (editorHex != null && textarea != null) {
       Color innerColor = Color.decode(editorHex);
-      javax.swing.JScrollPane textScroll = textarea.getScrollPane();
-      if (textScroll != null && textScroll.getRowHeader() != null) {
-        // Paint the container of the line numbers
-        textScroll.getRowHeader().setBackground(innerColor);
-        textScroll.getRowHeader().setOpaque(true);
-        
-        // Paint the actual Line Number component inside it
-        java.awt.Component gutterView = textScroll.getRowHeader().getView();
-        if (gutterView != null) {
-          gutterView.setBackground(innerColor);
-          if (gutterView instanceof javax.swing.JComponent) {
-            ((javax.swing.JComponent)gutterView).putClientProperty("FlatLaf.style", "background: " + editorHex);
+      
+      // Find the ScrollPane by looking at the textarea's parent
+      java.awt.Container parent = textarea.getParent();
+      if (parent instanceof javax.swing.JViewport) {
+        parent = parent.getParent(); // Viewport lives inside the ScrollPane
+      }
+
+      if (parent instanceof javax.swing.JScrollPane) {
+        javax.swing.JScrollPane textScroll = (javax.swing.JScrollPane) parent;
+        if (textScroll.getRowHeader() != null) {
+          textScroll.getRowHeader().setBackground(innerColor);
+          textScroll.getRowHeader().setOpaque(true);
+          
+          java.awt.Component gutterView = textScroll.getRowHeader().getView();
+          if (gutterView != null) {
+            gutterView.setBackground(innerColor);
+            if (gutterView instanceof javax.swing.JComponent) {
+              ((javax.swing.JComponent)gutterView).putClientProperty("FlatLaf.style", "background: " + editorHex);
+            }
           }
         }
       }
