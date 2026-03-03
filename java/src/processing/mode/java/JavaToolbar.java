@@ -177,22 +177,29 @@ public class JavaToolbar extends EditorToolbar {
 
   // Helper to apply the actual pink paint
   private void paintComponentPink(java.awt.Component comp, Color c, String hex) {
+    if (comp == null) return;
     comp.setBackground(c);
     
     if (comp instanceof javax.swing.JComponent) {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
       jc.setOpaque(true);
-      // This is the "Magic Sauce" for FlatLaf
-      jc.putClientProperty("FlatLaf.style", "background: " + hex + "; selectionBackground: " + hex);
+
+      // 1. SAFE FLATLAF STYLE (Removed selectionBackground to stop the SEVERE errors)
+      jc.putClientProperty("FlatLaf.style", "background: " + hex);
       
+      // 2. TARGETED SELECTION (Only for components that actually support it)
+      if (comp instanceof javax.swing.text.JTextComponent || comp instanceof javax.swing.JTable) {
+        jc.putClientProperty("FlatLaf.style", "background: " + hex + "; selectionBackground: " + hex);
+      }
+
       if (comp instanceof javax.swing.JScrollPane) {
         javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
         
-        // 1. Paint the main viewport (where text lives)
+        // Paint the main viewport
         sp.getViewport().setBackground(c);
         sp.getViewport().setOpaque(true);
         
-        // 2. THE BLACK STRIP FIX (Row Header)
+        // 3. THE BLACK STRIP FIX (Row Header)
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
           sp.getRowHeader().setOpaque(true);
@@ -202,13 +209,14 @@ public class JavaToolbar extends EditorToolbar {
             javax.swing.JComponent jrv = (javax.swing.JComponent) rowView;
             jrv.setBackground(c);
             jrv.setOpaque(true);
+            // Apply the style directly to the view inside the strip
             jrv.putClientProperty("FlatLaf.style", "background: " + hex);
           }
         }
         
-        // 3. Paint the little square in the corner where scrollbars meet
+        // Paint corners
         if (sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER) != null) {
-           sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER).setBackground(c);
+          sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER).setBackground(c);
         }
       }
     }
