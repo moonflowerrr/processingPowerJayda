@@ -105,6 +105,10 @@ public class JavaToolbar extends EditorToolbar {
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
       javax.swing.UIManager.put("StatusBar.background", pickedColor);
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      javax.swing.UIManager.put("Button.background", pickedColor);
+      javax.swing.UIManager.put("ScrollBar.thumb", pickedColor.darker());
+      javax.swing.UIManager.put("TabbedPane.selected", pickedColor);
+      javax.swing.UIManager.put("Table.background", pickedColor);
       
       processing.app.Preferences.set("header.color", hex);
       
@@ -121,8 +125,14 @@ public class JavaToolbar extends EditorToolbar {
       processing.app.Preferences.set("editor.bgcolor", hex);
     }
     else if (optionIndex == 2) { // Console
-      jeditor.getConsole().setBackground(pickedColor);
       processing.app.Preferences.set("console.color", hex);
+      
+      // Instead of just setting background, run the vanquisher 
+      // but only target the console area
+      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+      if (window != null) {
+        vanquishBlueSurgically(window, pickedColor);
+      }
     }
 
     processing.app.Preferences.save();
@@ -132,31 +142,29 @@ public class JavaToolbar extends EditorToolbar {
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
     if (comp == null) return;
-    
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD (Protect the code area from getting painted over)
-    if (comp == jeditor.getTextArea() || className.contains("ErrorTable") || className.contains("TextArea")) {
-        return;
+    // 1. THE SHIELD - ONLY protect the main code area
+    if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
+        return; 
     }
 
-    // 2. THE DIRECT PAINT & CONSOLE FIX
-    // We target panels and the console (JTextPane)
-    if (comp instanceof javax.swing.JPanel || comp instanceof javax.swing.JTextPane || className.contains("EditorConsole")) {
-        comp.setBackground(c);
+    // 2. THE DIRECT PAINT
+    // Target Panels, ScrollPanes, and the deep Console TextPane
+    if (comp instanceof javax.swing.JPanel || 
+        comp instanceof javax.swing.JTextPane || 
+        className.contains("EditorConsole")) {
         
+        comp.setBackground(c);
         if (comp instanceof javax.swing.JComponent) {
             javax.swing.JComponent jc = (javax.swing.JComponent) comp;
             jc.setOpaque(true);
-            jc.setBorder(null); // Removes dark console borders
-            
-            // This property locks the color in for FlatLaf
             jc.putClientProperty("FlatLaf.style", "background: " + hex);
         }
     }
 
-    // 3. RECURSE (Dig deeper into the UI tree)
+    // 3. RECURSE - Dig into the container to find hidden components
     if (comp instanceof java.awt.Container) {
         for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
             vanquishBlueSurgically(child, c);
