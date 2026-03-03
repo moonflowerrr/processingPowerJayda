@@ -109,6 +109,17 @@ public class JavaToolbar extends EditorToolbar {
       javax.swing.UIManager.put("StatusBar.background", pickedColor);
       javax.swing.UIManager.put("MenuBar.background", pickedColor);
       javax.swing.UIManager.put("ScrollPane.background", pickedColor);
+
+      // KILL THE BLUE BORDERS AND DIVIDERS
+      javax.swing.UIManager.put("Component.focusColor", pickedColor);
+      javax.swing.UIManager.put("Component.borderColor", pickedColor);
+      javax.swing.UIManager.put("SplitPane.background", pickedColor);
+      javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
+      
+      // TARGET THE TABS
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor.darker()); // Or pickedColor to hide it
+      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
       
       jeditor.rebuildHeader();
       if (window != null) {
@@ -168,8 +179,14 @@ public class JavaToolbar extends EditorToolbar {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
       jc.setOpaque(true);
       jc.putClientProperty("FlatLaf.style", "background: " + hex);
+      
+      // THE FIX FOR THE BLACK LEFT STRIP:
       if (comp instanceof javax.swing.JScrollPane) {
-          ((javax.swing.JScrollPane)comp).getViewport().setBackground(c);
+          javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
+          sp.getViewport().setBackground(c);
+          if (sp.getRowHeader() != null) {
+              sp.getRowHeader().setBackground(c); // This kills the black strip
+          }
       }
     }
   }
