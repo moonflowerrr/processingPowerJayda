@@ -103,31 +103,20 @@ public class JavaToolbar extends EditorToolbar {
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
       
-      // Global UIManager defaults (The "Yay" factors)
+      // These keys provide the "Ground Coverage" you liked before
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
-      javax.swing.UIManager.put("StatusBar.background", pickedColor);
       javax.swing.UIManager.put("MenuBar.background", pickedColor);
-      javax.swing.UIManager.put("ScrollPane.background", pickedColor);
-
-      // These stop the "Blue Ghosting" on buttons and dividers
-      javax.swing.UIManager.put("Component.focusColor", pickedColor);
-      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
-      javax.swing.UIManager.put("ScrollBar.track", pickedColor);
-      
-      // This targets the Split Pane divider (the blue line between code and console)
       javax.swing.UIManager.put("SplitPane.background", pickedColor);
-      javax.swing.UIManager.put("SplitPaneDivider.draggingColor", pickedColor.darker());
+      javax.swing.UIManager.put("Label.background", pickedColor);
       
-      // TARGET THE TABS
-      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor.darker()); // Or pickedColor to hide it
+      // KILL THE BLUE: 
+      javax.swing.UIManager.put("Component.focusColor", pickedColor);
+      javax.swing.UIManager.put("Component.borderColor", pickedColor);
       javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
       
       jeditor.rebuildHeader();
       if (window != null) {
-        // Mode 0: Paint everything EXCEPT the code area and console
         vanquishBlueSurgically(window, pickedColor, 0);
       }
     } 
@@ -152,26 +141,20 @@ public class JavaToolbar extends EditorToolbar {
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    //boolean isConsole = className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane;
+    // Identify the parts
+    boolean isConsole = className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane;
     boolean isTextArea = comp == jeditor.getTextArea() || className.contains("TextArea");
-    // Add "viewport" and "layered" to the console detection
-    boolean isConsole = className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane ||
-                        className.contains("ConsoleViewport");
 
-    // LOGIC GATE:
-    if (mode == 2) { // CONSOLE ONLY MODE
-      if (isConsole) {
-        paintComponentPink(comp, c, hex);
-      }
-    } else if (mode == 0) { // OUTER THEME MODE
-      if (isTextArea || isConsole || className.contains("ErrorTable")) {
-        // Skip these - they have their own buttons!
-      } else {
+    if (mode == 2) { // CONSOLE MODE: Only paint the console
+      if (isConsole) paintComponentPink(comp, c, hex);
+    } 
+    else if (mode == 0) { // OUTER MODE: Paint everything ELSE
+      if (!isConsole && !isTextArea && !className.contains("ErrorTable")) {
         paintComponentPink(comp, c, hex);
       }
     }
 
-    // Always keep digging
+    // Always dig deeper
     if (comp instanceof java.awt.Container) {
       for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
         vanquishBlueSurgically(child, c, mode);
@@ -186,31 +169,23 @@ public class JavaToolbar extends EditorToolbar {
     if (comp instanceof javax.swing.JComponent) {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
       jc.setOpaque(true);
-      
-      // Force FlatLaf to accept the color
       jc.putClientProperty("FlatLaf.style", "background: " + hex);
       
-      // TARGET THE SCROLLPANE GUTS
       if (comp instanceof javax.swing.JScrollPane) {
         javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
-        
-        // Paint the main viewport
         sp.getViewport().setBackground(c);
         sp.getViewport().setOpaque(true);
         
-        // Paint the 'Row Header' (The black strip on the left)
+        // THE BLACK STRIP FIX:
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
           sp.getRowHeader().setOpaque(true);
-          // FIXED TYPO HERE: Change getViewview() to getView()
-          if (sp.getRowHeader().getView() instanceof javax.swing.JComponent) {
-             ((javax.swing.JComponent)sp.getRowHeader().getView()).putClientProperty("FlatLaf.style", "background: " + hex);
+          // We reach inside the header to paint the actual content
+          java.awt.Component rowView = sp.getRowHeader().getView();
+          if (rowView instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent)rowView).setOpaque(true);
+            ((javax.swing.JComponent)rowView).putClientProperty("FlatLaf.style", "background: " + hex);
           }
-        }
-        
-        // Paint the corners where scrollbars meet
-        if (sp.getCorner(javax.swing.JScrollPane.LOWER_LEFT_CORNER) != null) {
-          sp.getCorner(javax.swing.JScrollPane.LOWER_LEFT_CORNER).setBackground(c);
         }
       }
     }
