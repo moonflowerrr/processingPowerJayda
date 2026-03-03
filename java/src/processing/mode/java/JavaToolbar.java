@@ -98,79 +98,82 @@ public class JavaToolbar extends EditorToolbar {
 
   private void applyCustomColor(int optionIndex, Color pickedColor) {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
+    java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
 
     if (optionIndex == 0) { // Outer Theme
-      // Set global forces for the theme engine
+      processing.app.Preferences.set("header.color", hex);
+      
+      // Global UIManager defaults (The "Yay" factors)
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
       javax.swing.UIManager.put("StatusBar.background", pickedColor);
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("Button.background", pickedColor);
-      javax.swing.UIManager.put("ScrollBar.thumb", pickedColor.darker());
-      javax.swing.UIManager.put("TabbedPane.selected", pickedColor);
-      javax.swing.UIManager.put("Table.background", pickedColor);
+      javax.swing.UIManager.put("MenuBar.background", pickedColor);
+      javax.swing.UIManager.put("ScrollPane.background", pickedColor);
       
-      processing.app.Preferences.set("header.color", hex);
-      
-      // Force the refresh
-      jeditor.rebuildHeader(); 
-      
-      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+      jeditor.rebuildHeader();
       if (window != null) {
-        vanquishBlueSurgically(window, pickedColor);
+        // Mode 0: Paint everything EXCEPT the code area and console
+        vanquishBlueSurgically(window, pickedColor, 0);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
-      jeditor.getTextArea().getPainter().setBackground(pickedColor);
       processing.app.Preferences.set("editor.bgcolor", hex);
+      jeditor.getTextArea().getPainter().setBackground(pickedColor);
     }
     else if (optionIndex == 2) { // Console
       processing.app.Preferences.set("console.color", hex);
-      
-      // Instead of just setting background, run the vanquisher 
-      // but only target the console area
-      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
       if (window != null) {
-        vanquishBlueSurgically(window, pickedColor);
+        // Mode 2: ONLY paint the console
+        vanquishBlueSurgically(window, pickedColor, 2);
       }
     }
 
     processing.app.Preferences.save();
-    // This refreshes the whole window UI
-    javax.swing.SwingUtilities.updateComponentTreeUI(javax.swing.SwingUtilities.getRoot(this));
+    javax.swing.SwingUtilities.updateComponentTreeUI(window);
   }
 
-  private void vanquishBlueSurgically(java.awt.Component comp, Color c) {
+  private void vanquishBlueSurgically(java.awt.Component comp, Color c, int mode) {
     if (comp == null) return;
     String className = comp.getClass().getName();
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
-    // 1. THE SHIELD - ONLY protect the main code area
-    if (comp == jeditor.getTextArea() || className.contains("ErrorTable")) { 
-        return; 
+    boolean isConsole = className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane;
+    boolean isTextArea = comp == jeditor.getTextArea() || className.contains("TextArea");
+
+    // LOGIC GATE:
+    if (mode == 2) { // CONSOLE ONLY MODE
+      if (isConsole) {
+        paintComponentPink(comp, c, hex);
+      }
+    } else if (mode == 0) { // OUTER THEME MODE
+      if (isTextArea || isConsole || className.contains("ErrorTable")) {
+        // Skip these - they have their own buttons!
+      } else {
+        paintComponentPink(comp, c, hex);
+      }
     }
 
-    // 2. THE DIRECT PAINT
-    // Target Panels, ScrollPanes, and the deep Console TextPane
-    if (comp instanceof javax.swing.JPanel || 
-        comp instanceof javax.swing.JTextPane || 
-        className.contains("EditorConsole")) {
-        
-        comp.setBackground(c);
-        if (comp instanceof javax.swing.JComponent) {
-            javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-            jc.setOpaque(true);
-            jc.putClientProperty("FlatLaf.style", "background: " + hex);
-        }
-    }
-
-    // 3. RECURSE - Dig into the container to find hidden components
+    // Always keep digging
     if (comp instanceof java.awt.Container) {
-        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-            vanquishBlueSurgically(child, c);
-        }
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        vanquishBlueSurgically(child, c, mode);
+      }
     }
   }
+
+  // Helper to apply the actual pink paint
+  private void paintComponentPink(java.awt.Component comp, Color c, String hex) {
+    comp.setBackground(c);
+    if (comp instanceof javax.swing.JComponent) {
+      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      jc.setOpaque(true);
+      jc.putClientProperty("FlatLaf.style", "background: " + hex);
+      if (comp instanceof javax.swing.JScrollPane) {
+          ((javax.swing.JScrollPane)comp).getViewport().setBackground(c);
+      }
+    }
+  }
+  
 
   private Color getContrastColor(Color color) {
     // Standard YIQ formula to determine if background is dark or light
