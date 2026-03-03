@@ -603,6 +603,7 @@ public abstract class Editor extends JFrame implements RunnerListener {
     if (headerHex != null && toolbar != null) {
       toolbar.setBackground(Color.decode(headerHex));
       toolbar.setOpaque(true);
+      ((javax.swing.JComponent)toolbar).revalidate();
     }
 
     // Fix Console & Black Strip (Surgical Version)
