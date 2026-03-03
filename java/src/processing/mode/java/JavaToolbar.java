@@ -109,17 +109,14 @@ public class JavaToolbar extends EditorToolbar {
       javax.swing.UIManager.put("Component.focusColor", pickedColor);
       javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
       
-      // Update the header directly
       jeditor.rebuildHeader();
       
-      // Paint the outer ground coverage
-      java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
+      // REMOVE the line that says: java.awt.Window window = ...
+      // Just use the 'window' that is already there:
       if (window != null) {
-        // We use Mode 0 so it skips the Console and Inner text area
         vanquishBlueSurgically(window, pickedColor, 0);
         javax.swing.SwingUtilities.updateComponentTreeUI(window);
       }
-      
     } 
     else if (optionIndex == 1) { // Inner Coding Area
       processing.app.Preferences.set("editor.bgcolor", hex);
