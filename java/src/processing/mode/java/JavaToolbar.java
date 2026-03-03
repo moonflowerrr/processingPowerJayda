@@ -103,18 +103,27 @@ public class JavaToolbar extends EditorToolbar {
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
       
-      // These keys provide the "Ground Coverage" you liked before
+      // 1. BACKGROUND COVERAGE
       javax.swing.UIManager.put("Panel.background", pickedColor);
       javax.swing.UIManager.put("ToolBar.background", pickedColor);
       javax.swing.UIManager.put("MenuBar.background", pickedColor);
-      javax.swing.UIManager.put("SplitPane.background", pickedColor);
       javax.swing.UIManager.put("Label.background", pickedColor);
+      javax.swing.UIManager.put("SplitPane.background", pickedColor);
+      javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
       
-      // KILL THE BLUE: 
+      // 2. KILL THE BLUE (Focus, Borders, and Accent Lines)
       javax.swing.UIManager.put("Component.focusColor", pickedColor);
       javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
+      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
       
+      // 3. TAB AREA (Selection and underlines)
+      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor); // Kills the blue line under tabs
+      
+      // 4. FLATLAF SPECIFIC (The "Nuclear" option for dividers)
+      javax.swing.UIManager.put("SplitPaneDivider.style", "background: " + hex);
+
       jeditor.rebuildHeader();
       if (window != null) {
         vanquishBlueSurgically(window, pickedColor, 0);
@@ -126,9 +135,13 @@ public class JavaToolbar extends EditorToolbar {
     }
     else if (optionIndex == 2) { // Console
       processing.app.Preferences.set("console.color", hex);
+      
+      // Force these specifically for the console area
+      javax.swing.UIManager.put("Console.background", pickedColor);
+      javax.swing.UIManager.put("EditorConsole.background", pickedColor);
+      
       if (window != null) {
-        // Mode 2: ONLY paint the console
-        vanquishBlueSurgically(window, pickedColor, 2);
+        vanquishBlueSurgically(window, pickedColor, 2); 
       }
     }
 
@@ -169,23 +182,33 @@ public class JavaToolbar extends EditorToolbar {
     if (comp instanceof javax.swing.JComponent) {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
       jc.setOpaque(true);
-      jc.putClientProperty("FlatLaf.style", "background: " + hex);
+      // This is the "Magic Sauce" for FlatLaf
+      jc.putClientProperty("FlatLaf.style", "background: " + hex + "; selectionBackground: " + hex);
       
       if (comp instanceof javax.swing.JScrollPane) {
         javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
+        
+        // 1. Paint the main viewport (where text lives)
         sp.getViewport().setBackground(c);
         sp.getViewport().setOpaque(true);
         
-        // THE BLACK STRIP FIX:
+        // 2. THE BLACK STRIP FIX (Row Header)
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
           sp.getRowHeader().setOpaque(true);
-          // We reach inside the header to paint the actual content
+          
           java.awt.Component rowView = sp.getRowHeader().getView();
           if (rowView instanceof javax.swing.JComponent) {
-            ((javax.swing.JComponent)rowView).setOpaque(true);
-            ((javax.swing.JComponent)rowView).putClientProperty("FlatLaf.style", "background: " + hex);
+            javax.swing.JComponent jrv = (javax.swing.JComponent) rowView;
+            jrv.setBackground(c);
+            jrv.setOpaque(true);
+            jrv.putClientProperty("FlatLaf.style", "background: " + hex);
           }
+        }
+        
+        // 3. Paint the little square in the corner where scrollbars meet
+        if (sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER) != null) {
+           sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER).setBackground(c);
         }
       }
     }
