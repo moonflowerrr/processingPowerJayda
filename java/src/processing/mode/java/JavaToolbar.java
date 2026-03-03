@@ -202,14 +202,16 @@ public class JavaToolbar extends EditorToolbar {
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
           sp.getRowHeader().setOpaque(true);
-          if (sp.getRowHeader().getViewview() instanceof javax.swing.JComponent) {
+          // FIXED TYPO HERE: Change getViewview() to getView()
+          if (sp.getRowHeader().getView() instanceof javax.swing.JComponent) {
              ((javax.swing.JComponent)sp.getRowHeader().getView()).putClientProperty("FlatLaf.style", "background: " + hex);
           }
         }
         
         // Paint the corners where scrollbars meet
-        sp.getCorner(javax.swing.JScrollPane.LOWER_LEFT_CORNER).setBackground(c);
-        sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER).setBackground(c);
+        if (sp.getCorner(javax.swing.JScrollPane.LOWER_LEFT_CORNER) != null) {
+          sp.getCorner(javax.swing.JScrollPane.LOWER_LEFT_CORNER).setBackground(c);
+        }
       }
     }
   }
