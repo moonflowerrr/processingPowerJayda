@@ -586,12 +586,53 @@ public abstract class Editor extends JFrame implements RunnerListener {
    * the app is just starting up, or the user just finished messing
    * with things in the Preferences window.
    */
-  public void applyPreferences() {
+  public void applyPreferences(Color pickedColor) {
     // Even though this is only updating the theme (colors, icons),
     // subclasses use this to apply other preferences.
     // For instance, Java Mode applies changes to error checking.
+    
     updateTheme();
+    applyCustomColors();
   }
+
+  // Inside Editor.java
+public void applyCustomColors() {
+  // Grab all three preferences
+  String headerHex = processing.app.Preferences.get("header.color");
+  String consoleHex = processing.app.Preferences.get("console.color");
+
+  if (headerHex != null && toolbar != null) {
+    toolbar.setBackground(Color.decode(headerHex));
+  }
+
+  if (consoleHex != null && console != null) {
+    Color c = Color.decode(consoleHex);
+    console.setBackground(c);
+    // This is where we kill the black strip in the console!
+    if (console.getScrollPane() != null && console.getScrollPane().getRowHeader() != null) {
+       console.getScrollPane().getRowHeader().setBackground(c);
+    }
+  }
+  if (console != null) {
+      // Direct background
+      console.setBackground(Color.decode(consoleHex));
+      
+      // Reach into the console's components to find the scrollpane/strip
+      for (java.awt.Component child : console.getComponents()) {
+        if (child instanceof javax.swing.JScrollPane) {
+          javax.swing.JScrollPane sp = (javax.swing.JScrollPane) child;
+          Color c = Color.decode(consoleHex);
+          sp.getViewport().setBackground(c);
+          if (sp.getRowHeader() != null) {
+            sp.getRowHeader().setBackground(c);
+            if (sp.getRowHeader().getView() != null) {
+              sp.getRowHeader().getView().setBackground(c);
+            }
+          }
+        }
+      }
+    }
+}
 
 
   public void updateTheme() {

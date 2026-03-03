@@ -102,47 +102,16 @@ public class JavaToolbar extends EditorToolbar {
 
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
-      
-      // 1. BACKGROUND COVERAGE
-      javax.swing.UIManager.put("Panel.background", pickedColor);
-      javax.swing.UIManager.put("ToolBar.background", pickedColor);
-      javax.swing.UIManager.put("MenuBar.background", pickedColor);
-      javax.swing.UIManager.put("Label.background", pickedColor);
-      javax.swing.UIManager.put("SplitPane.background", pickedColor);
-      javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
-      
-      // 2. KILL THE BLUE (Focus, Borders, and Accent Lines)
-      javax.swing.UIManager.put("Component.focusColor", pickedColor);
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
-      
-      // 3. TAB AREA (Selection and underlines)
-      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor); // Kills the blue line under tabs
-      
-      // 4. FLATLAF SPECIFIC (The "Nuclear" option for dividers)
-      javax.swing.UIManager.put("SplitPaneDivider.style", "background: " + hex);
-
-      jeditor.rebuildHeader();
-      if (window != null) {
-        vanquishBlueSurgically(window, pickedColor, 0);
-      }
+      jeditor.rebuildHeader(); // Processing's built-in refresh
+      jeditor.applyCustomColors(); // YOUR NEW POWER MOVE
     } 
-    else if (optionIndex == 1) { // Inner Coding Area
-      processing.app.Preferences.set("editor.bgcolor", hex);
-      jeditor.getTextArea().getPainter().setBackground(pickedColor);
-    }
+    else if (optionIndex == 1) { // Inner Theme
+      processing.app.Preferences.set("editor.background", hex);
+      jeditor.applyCustomColors(); 
+    } 
     else if (optionIndex == 2) { // Console
       processing.app.Preferences.set("console.color", hex);
-      
-      // Force these specifically for the console area
-      javax.swing.UIManager.put("Console.background", pickedColor);
-      javax.swing.UIManager.put("EditorConsole.background", pickedColor);
-      
-      if (window != null) {
-        vanquishBlueSurgically(window, pickedColor, 2); 
-      }
+      jeditor.applyCustomColors();
     }
 
     processing.app.Preferences.save();
