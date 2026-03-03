@@ -596,36 +596,58 @@ public abstract class Editor extends JFrame implements RunnerListener {
   }
 
   public void applyCustomColors() {
+    // 1. Get the colors from preferences
     String headerHex = processing.app.Preferences.get("header.color");
+    String editorHex = processing.app.Preferences.get("editor.background");
     String consoleHex = processing.app.Preferences.get("console.color");
 
-    // Fix Toolbar
-    if (headerHex != null && toolbar != null) {
-      toolbar.setBackground(Color.decode(headerHex));
-      toolbar.setOpaque(true);
-      ((javax.swing.JComponent)toolbar).revalidate();
+    // 2. Process OUTER (Toolbar/Tabs)
+    if (headerHex != null) {
+      Color c = Color.decode(headerHex);
+      // We target 'this' (the whole Editor window) with Mode 0 (Outer)
+      forceColorRecursively(this, c, 0); 
     }
 
-    // Fix Console & Black Strip (Surgical Version)
+    // 3. Process CONSOLE (Bottom)
     if (consoleHex != null && console != null) {
       Color c = Color.decode(consoleHex);
-      console.setBackground(c);
+      // We target just the console with Mode 2
+      forceColorRecursively(console, c, 2);
+    }
+    
+    // 4. Final Refresh
+    this.repaint();
+  }
+
+  // Helper method to force colors deep into the UI
+  private void forceColorRecursively(java.awt.Component comp, Color c, int mode) {
+    if (comp == null) return;
+    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+    
+    // Set background and force FlatLaf to listen
+    comp.setBackground(c);
+    if (comp instanceof javax.swing.JComponent) {
+      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+      jc.setOpaque(true);
+      jc.putClientProperty("FlatLaf.style", "background: " + hex);
       
-      // We loop through the console's parts to find the ScrollPane
-      // since we can't call getScrollPane() directly
-      for (java.awt.Component comp : console.getComponents()) {
-        if (comp instanceof javax.swing.JScrollPane) {
-          javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
-          sp.getViewport().setBackground(c);
-          sp.getViewport().setOpaque(true);
-          if (sp.getRowHeader() != null) {
-            sp.getRowHeader().setBackground(c);
-            sp.getRowHeader().setOpaque(true);
-            if (sp.getRowHeader().getView() != null) {
-              sp.getRowHeader().getView().setBackground(c);
-            }
+      // Target the "Black Strip" (JScrollPane)
+      if (comp instanceof javax.swing.JScrollPane) {
+        javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
+        sp.getViewport().setBackground(c);
+        if (sp.getRowHeader() != null) {
+          sp.getRowHeader().setBackground(c);
+          if (sp.getRowHeader().getView() != null) {
+            sp.getRowHeader().getView().setBackground(c);
           }
         }
+      }
+    }
+
+    // Dig deeper into children
+    if (comp instanceof java.awt.Container) {
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        forceColorRecursively(child, c, mode);
       }
     }
   }
