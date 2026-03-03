@@ -596,59 +596,107 @@ public abstract class Editor extends JFrame implements RunnerListener {
   }
 
   public void applyCustomColors() {
-    // 1. Get the colors from preferences
     String headerHex = processing.app.Preferences.get("header.color");
     String editorHex = processing.app.Preferences.get("editor.background");
     String consoleHex = processing.app.Preferences.get("console.color");
 
-    // 2. Process OUTER (Toolbar/Tabs)
+    // 1. OUTER THEME (Toolbar/Tabs/Frame)
     if (headerHex != null) {
-      Color c = Color.decode(headerHex);
-      // We target 'this' (the whole Editor window) with Mode 0 (Outer)
-      forceColorRecursively(this, c, 0); 
+        // MODE 0: Paint everything EXCEPT the code area and console
+        forceColorRecursively(this, Color.decode(headerHex), 0); 
     }
 
-    // 3. Process CONSOLE (Bottom)
+    // 2. CONSOLE (The Bottom)
     if (consoleHex != null && console != null) {
-      Color c = Color.decode(consoleHex);
-      // We target just the console with Mode 2
-      forceColorRecursively(console, c, 2);
+        // MODE 2: ONLY paint the console and its specific black strip
+        forceColorRecursively(console, Color.decode(consoleHex), 2);
     }
-    
-    // 4. Final Refresh
-    this.repaint();
-  }
 
-  // Helper method to force colors deep into the UI
-  private void forceColorRecursively(java.awt.Component comp, Color c, int mode) {
-    if (comp == null) return;
-    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-    
-    // Set background and force FlatLaf to listen
-    comp.setBackground(c);
-    if (comp instanceof javax.swing.JComponent) {
-      javax.swing.JComponent jc = (javax.swing.JComponent) comp;
-      jc.setOpaque(true);
-      jc.putClientProperty("FlatLaf.style", "background: " + hex);
-      
-      // Target the "Black Strip" (JScrollPane)
-      if (comp instanceof javax.swing.JScrollPane) {
-        javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
-        sp.getViewport().setBackground(c);
-        if (sp.getRowHeader() != null) {
-          sp.getRowHeader().setBackground(c);
-          if (sp.getRowHeader().getView() != null) {
-            sp.getRowHeader().getView().setBackground(c);
+    // 3. INNER (The actual code background)
+    // We handle this directly so it doesn't leak
+    if (editorHex != null && textarea != null) {
+        textarea.setBackground(Color.decode(editorHex));
+    }
+
+    // --- TARGET THE CODE GUTTER (Inner Strip) ---
+    if (editorHex != null && textarea != null) {
+      Color innerColor = Color.decode(editorHex);
+      javax.swing.JScrollPane textScroll = textarea.getScrollPane();
+      if (textScroll != null && textScroll.getRowHeader() != null) {
+        // Paint the container of the line numbers
+        textScroll.getRowHeader().setBackground(innerColor);
+        textScroll.getRowHeader().setOpaque(true);
+        
+        // Paint the actual Line Number component inside it
+        java.awt.Component gutterView = textScroll.getRowHeader().getView();
+        if (gutterView != null) {
+          gutterView.setBackground(innerColor);
+          if (gutterView instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent)gutterView).putClientProperty("FlatLaf.style", "background: " + editorHex);
           }
         }
       }
     }
 
-    // Dig deeper into children
-    if (comp instanceof java.awt.Container) {
-      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-        forceColorRecursively(child, c, mode);
+    // --- TARGET THE CONSOLE GUTTER (Bottom Strip) ---
+    if (consoleHex != null && console != null) {
+      Color consoleColor = Color.decode(consoleHex);
+      // We use the same logic for the console's scrollpane
+      for (java.awt.Component child : console.getComponents()) {
+        if (child instanceof javax.swing.JScrollPane) {
+          javax.swing.JScrollPane consoleScroll = (javax.swing.JScrollPane) child;
+          if (consoleScroll.getRowHeader() != null) {
+            consoleScroll.getRowHeader().setBackground(consoleColor);
+            if (consoleScroll.getRowHeader().getView() != null) {
+              consoleScroll.getRowHeader().getView().setBackground(consoleColor);
+            }
+          }
+        }
       }
+    }
+    
+    this.repaint();
+  }
+
+  private void forceColorRecursively(java.awt.Component comp, Color c, int mode) {
+    if (comp == null) return;
+    String className = comp.getClass().getName();
+
+    // GUARDRAILS: Check if we are touching things we shouldn't
+    boolean isConsole = className.contains("EditorConsole") || className.contains("Console") || className.contains("ErrorTable");
+    boolean isTextArea = className.contains("TextArea") || className.contains("EditorPane");
+
+    if (mode == 0) { // OUTER MODE
+        // Skip the inner "meat" of the editor so it doesn't turn the same color
+        if (isConsole || isTextArea) return; 
+    }
+
+    // Apply the paint
+    comp.setBackground(c);
+    if (comp instanceof javax.swing.JComponent) {
+        javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+        jc.setOpaque(true);
+        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+        jc.putClientProperty("FlatLaf.style", "background: " + hex);
+
+        // Targeted Black Strip Fix
+        if (comp instanceof javax.swing.JScrollPane) {
+            javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
+            sp.getViewport().setBackground(c);
+            if (sp.getRowHeader() != null) {
+                sp.getRowHeader().setBackground(c);
+                if (sp.getRowHeader().getView() != null) {
+                    sp.getRowHeader().getView().setBackground(c);
+                }
+            }
+        }
+    }
+
+    // Keep digging, but respect the guardrails
+    if (comp instanceof java.awt.Container) {
+        for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+            forceColorRecursively(child, c, mode);
+        }
     }
   }
 
