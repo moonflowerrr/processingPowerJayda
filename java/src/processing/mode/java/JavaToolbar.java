@@ -102,29 +102,23 @@ public class JavaToolbar extends EditorToolbar {
 
     if (optionIndex == 0) { // Outer Theme
       processing.app.Preferences.set("header.color", hex);
-      
-      // 1. BACKGROUND COVERAGE
-      javax.swing.UIManager.put("Panel.background", pickedColor);
-      javax.swing.UIManager.put("ToolBar.background", pickedColor);
-      javax.swing.UIManager.put("MenuBar.background", pickedColor);
-      javax.swing.UIManager.put("Label.background", pickedColor);
-      javax.swing.UIManager.put("SplitPane.background", pickedColor);
-      javax.swing.UIManager.put("SplitPaneDivider.background", pickedColor);
-      
-      // 2. KILL THE BLUE (Focus, Borders, and Accent Lines)
-      javax.swing.UIManager.put("Component.focusColor", pickedColor);
-      javax.swing.UIManager.put("Component.borderColor", pickedColor);
-      javax.swing.UIManager.put("Component.focusedBorderColor", pickedColor);
-      
-      // 3. TAB AREA (Selection and underlines)
-      javax.swing.UIManager.put("TabbedPane.focusColor", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor);
-      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor); // Kills the blue line under tabs
-      
-      // 4. FLATLAF SPECIFIC (The "Nuclear" option for dividers)
-      javax.swing.UIManager.put("SplitPaneDivider.style", "background: " + hex);
 
+      // 1. KILL THE ACCENT BLUE (Tabs, Focus, Buttons)
+      Object colorObj = pickedColor;
+      javax.swing.UIManager.put("DefaultAccentColor", colorObj);
+      javax.swing.UIManager.put("TabbedPane.underlineColor", colorObj);
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", colorObj);
+      javax.swing.UIManager.put("Component.focusColor", colorObj);
+      javax.swing.UIManager.put("ProgressBar.foreground", colorObj);
+      
+      // 2. KILL THE BLUE DIVIDER
+      javax.swing.UIManager.put("SplitPane.background", colorObj);
+      javax.swing.UIManager.put("SplitPaneDivider.background", colorObj);
+
+      // 3. FORCE REPAINT
+      javax.swing.SwingUtilities.updateComponentTreeUI(window);
       jeditor.rebuildHeader();
+      
       if (window != null) {
         vanquishBlueSurgically(window, pickedColor, 0);
       }
@@ -149,28 +143,23 @@ public class JavaToolbar extends EditorToolbar {
     javax.swing.SwingUtilities.updateComponentTreeUI(window);
   }
 
-  private void vanquishBlueSurgically(java.awt.Component comp, Color c, int mode) {
-    if (comp == null) return;
-    String className = comp.getClass().getName();
-    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-
-    // Identify the parts
-    boolean isConsole = className.contains("EditorConsole") || className.contains("ConsoleViewport") || comp instanceof javax.swing.JTextPane;
-    boolean isTextArea = comp == jeditor.getTextArea() || className.contains("TextArea");
-
-    if (mode == 2) { // CONSOLE MODE: Only paint the console
-      if (isConsole) paintComponentPink(comp, c, hex);
-    } 
-    else if (mode == 0) { // OUTER MODE: Paint everything ELSE
-      if (!isConsole && !isTextArea && !className.contains("ErrorTable")) {
-        paintComponentPink(comp, c, hex);
+  private void vanquishBlueSurgically(java.awt.Container container, Color c, int depth) {
+    for (java.awt.Component comp : container.getComponents()) {
+      String className = comp.getClass().getName();
+      
+      // Check for the "Gutter" (The black strip) or the Console areas
+      if (className.contains("Gutter") || className.contains("EditorConsole") || className.contains("Console")) {
+        comp.setBackground(c);
+        if (comp instanceof javax.swing.JComponent) {
+          ((javax.swing.JComponent)comp).setOpaque(true);
+          ((javax.swing.JComponent)comp).putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
+        }
       }
-    }
 
-    // Always dig deeper
-    if (comp instanceof java.awt.Container) {
-      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
-        vanquishBlueSurgically(child, c, mode);
+      paintComponentPink(comp, c, String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
+
+      if (comp instanceof java.awt.Container) {
+        vanquishBlueSurgically((java.awt.Container) comp, c, depth + 1);
       }
     }
   }
