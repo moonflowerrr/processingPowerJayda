@@ -32,6 +32,8 @@ import processing.app.ui.Editor;
 import processing.app.ui.EditorButton;
 import processing.app.ui.EditorToolbar;
 import processing.mode.java.debug.Debugger;
+import processing.app.ui.EditorConsole;
+import processing.app.syntax.Gutter;
 
 import java.awt.Color;
 import javax.swing.JColorChooser;
@@ -101,26 +103,36 @@ public class JavaToolbar extends EditorToolbar {
     java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
 
     if (optionIndex == 0) { // Outer Theme
+      // 1. Update the Header (Processing's built-in way)
       processing.app.Preferences.set("header.color", hex);
-
-      // 1. KILL THE ACCENT BLUE (Tabs, Focus, Buttons)
-      Object colorObj = pickedColor;
-      javax.swing.UIManager.put("DefaultAccentColor", colorObj);
-      javax.swing.UIManager.put("TabbedPane.underlineColor", colorObj);
-      javax.swing.UIManager.put("TabbedPane.selectedBackground", colorObj);
-      javax.swing.UIManager.put("Component.focusColor", colorObj);
-      javax.swing.UIManager.put("ProgressBar.foreground", colorObj);
-      
-      // 2. KILL THE BLUE DIVIDER
-      javax.swing.UIManager.put("SplitPane.background", colorObj);
-      javax.swing.UIManager.put("SplitPaneDivider.background", colorObj);
-
-      // 3. FORCE REPAINT
-      javax.swing.SwingUtilities.updateComponentTreeUI(window);
       jeditor.rebuildHeader();
+
+      // 2. Target the Gutter (The Black Strip)
+      // We reach into the editor's text area to find the Gutter object
+      if (jeditor.getTextArea() != null) {
+        Gutter gutter = jeditor.getTextArea().getGutter();
+        if (gutter != null) {
+          gutter.setBackground(pickedColor);
+          // Processing 4 uses an internal 'LineHighlightColor' usually
+          // gutter.setLineHighlightColor(pickedColor.darker()); 
+        }
+      }
+
+      // 3. Target the Console Buttons & Background
+      EditorConsole console = jeditor.getConsole();
+      if (console != null) {
+        console.setBackground(pickedColor);
+        // This forces the "Console" and "Errors" buttons to refresh
+        javax.swing.SwingUtilities.updateComponentTreeUI(console);
+      }
+
+      // 4. Update the Tab Underline (The Blue Line)
+      javax.swing.UIManager.put("TabbedPane.underlineColor", pickedColor);
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", pickedColor.brighter());
       
+      // Refresh the whole window once
       if (window != null) {
-        vanquishBlueSurgically(window, pickedColor, 0);
+        javax.swing.SwingUtilities.updateComponentTreeUI(window);
       }
     } 
     else if (optionIndex == 1) { // Inner Coding Area
@@ -143,23 +155,28 @@ public class JavaToolbar extends EditorToolbar {
     javax.swing.SwingUtilities.updateComponentTreeUI(window);
   }
 
-  private void vanquishBlueSurgically(java.awt.Container container, Color c, int depth) {
-    for (java.awt.Component comp : container.getComponents()) {
-      String className = comp.getClass().getName();
-      
-      // Check for the "Gutter" (The black strip) or the Console areas
-      if (className.contains("Gutter") || className.contains("EditorConsole") || className.contains("Console")) {
-        comp.setBackground(c);
-        if (comp instanceof javax.swing.JComponent) {
-          ((javax.swing.JComponent)comp).setOpaque(true);
-          ((javax.swing.JComponent)comp).putClientProperty("FlatLaf.style", "background: " + String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
-        }
+  private void vanquishBlueSurgically(java.awt.Component comp, Color c, int mode) {
+    if (comp == null) return;
+    String className = comp.getClass().getName();
+    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+
+    // Identify the parts
+    boolean isConsole = className.contains("EditorConsole") || className.contains("ConsoleViewport") || comp instanceof javax.swing.JTextPane;
+    boolean isTextArea = comp == jeditor.getTextArea() || className.contains("TextArea");
+
+    if (mode == 2) { // CONSOLE MODE: Only paint the console
+      if (isConsole) paintComponentPink(comp, c, hex);
+    } 
+    else if (mode == 0) { // OUTER MODE: Paint everything ELSE
+      if (!isConsole && !isTextArea && !className.contains("ErrorTable")) {
+        paintComponentPink(comp, c, hex);
       }
+    }
 
-      paintComponentPink(comp, c, String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()));
-
-      if (comp instanceof java.awt.Container) {
-        vanquishBlueSurgically((java.awt.Container) comp, c, depth + 1);
+    // Always dig deeper
+    if (comp instanceof java.awt.Container) {
+      for (java.awt.Component child : ((java.awt.Container)comp).getComponents()) {
+        vanquishBlueSurgically(child, c, mode);
       }
     }
   }
