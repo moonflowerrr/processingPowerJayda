@@ -155,7 +155,7 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
 
     // Identify the parts
-    boolean isConsole = className.contains("EditorConsole") || comp instanceof javax.swing.JTextPane;
+    boolean isConsole = className.contains("EditorConsole") || className.contains("ConsoleViewport") || comp instanceof javax.swing.JTextPane;
     boolean isTextArea = comp == jeditor.getTextArea() || className.contains("TextArea");
 
     if (mode == 2) { // CONSOLE MODE: Only paint the console
@@ -184,22 +184,18 @@ public class JavaToolbar extends EditorToolbar {
       javax.swing.JComponent jc = (javax.swing.JComponent) comp;
       jc.setOpaque(true);
 
-      // 1. SAFE FLATLAF STYLE (Removed selectionBackground to stop the SEVERE errors)
+      // SAFE STYLE: We removed 'selectionBackground' to stop the SEVERE errors
       jc.putClientProperty("FlatLaf.style", "background: " + hex);
       
-      // 2. TARGETED SELECTION (Only for components that actually support it)
-      if (comp instanceof javax.swing.text.JTextComponent || comp instanceof javax.swing.JTable) {
-        jc.putClientProperty("FlatLaf.style", "background: " + hex + "; selectionBackground: " + hex);
-      }
-
+      // THE BLACK STRIP FIX (JScrollPane Guts)
       if (comp instanceof javax.swing.JScrollPane) {
         javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
         
-        // Paint the main viewport
+        // Paint the viewport (The main area)
         sp.getViewport().setBackground(c);
         sp.getViewport().setOpaque(true);
         
-        // 3. THE BLACK STRIP FIX (Row Header)
+        // Paint the Row Header (The left-side strip)
         if (sp.getRowHeader() != null) {
           sp.getRowHeader().setBackground(c);
           sp.getRowHeader().setOpaque(true);
@@ -209,14 +205,8 @@ public class JavaToolbar extends EditorToolbar {
             javax.swing.JComponent jrv = (javax.swing.JComponent) rowView;
             jrv.setBackground(c);
             jrv.setOpaque(true);
-            // Apply the style directly to the view inside the strip
             jrv.putClientProperty("FlatLaf.style", "background: " + hex);
           }
-        }
-        
-        // Paint corners
-        if (sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER) != null) {
-          sp.getCorner(javax.swing.JScrollPane.LOWER_RIGHT_CORNER).setBackground(c);
         }
       }
     }
