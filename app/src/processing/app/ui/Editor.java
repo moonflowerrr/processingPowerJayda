@@ -586,7 +586,7 @@ public abstract class Editor extends JFrame implements RunnerListener {
    * the app is just starting up, or the user just finished messing
    * with things in the Preferences window.
    */
-  public void applyPreferences(Color pickedColor) {
+  public void applyPreferences() {
     // Even though this is only updating the theme (colors, icons),
     // subclasses use this to apply other preferences.
     // For instance, Java Mode applies changes to error checking.
@@ -595,36 +595,31 @@ public abstract class Editor extends JFrame implements RunnerListener {
     applyCustomColors();
   }
 
-  // Inside Editor.java
-public void applyCustomColors() {
-  // Grab all three preferences
-  String headerHex = processing.app.Preferences.get("header.color");
-  String consoleHex = processing.app.Preferences.get("console.color");
+  public void applyCustomColors() {
+    String headerHex = processing.app.Preferences.get("header.color");
+    String consoleHex = processing.app.Preferences.get("console.color");
 
-  if (headerHex != null && toolbar != null) {
-    toolbar.setBackground(Color.decode(headerHex));
-  }
-
-  if (consoleHex != null && console != null) {
-    Color c = Color.decode(consoleHex);
-    console.setBackground(c);
-    // This is where we kill the black strip in the console!
-    if (console.getScrollPane() != null && console.getScrollPane().getRowHeader() != null) {
-       console.getScrollPane().getRowHeader().setBackground(c);
+    // Fix Toolbar
+    if (headerHex != null && toolbar != null) {
+      toolbar.setBackground(Color.decode(headerHex));
+      toolbar.setOpaque(true);
     }
-  }
-  if (console != null) {
-      // Direct background
-      console.setBackground(Color.decode(consoleHex));
+
+    // Fix Console & Black Strip (Surgical Version)
+    if (consoleHex != null && console != null) {
+      Color c = Color.decode(consoleHex);
+      console.setBackground(c);
       
-      // Reach into the console's components to find the scrollpane/strip
-      for (java.awt.Component child : console.getComponents()) {
-        if (child instanceof javax.swing.JScrollPane) {
-          javax.swing.JScrollPane sp = (javax.swing.JScrollPane) child;
-          Color c = Color.decode(consoleHex);
+      // We loop through the console's parts to find the ScrollPane
+      // since we can't call getScrollPane() directly
+      for (java.awt.Component comp : console.getComponents()) {
+        if (comp instanceof javax.swing.JScrollPane) {
+          javax.swing.JScrollPane sp = (javax.swing.JScrollPane) comp;
           sp.getViewport().setBackground(c);
+          sp.getViewport().setOpaque(true);
           if (sp.getRowHeader() != null) {
             sp.getRowHeader().setBackground(c);
+            sp.getRowHeader().setOpaque(true);
             if (sp.getRowHeader().getView() != null) {
               sp.getRowHeader().getView().setBackground(c);
             }
@@ -632,7 +627,7 @@ public void applyCustomColors() {
         }
       }
     }
-}
+  }
 
 
   public void updateTheme() {
