@@ -732,7 +732,7 @@ public abstract class Editor extends JFrame implements RunnerListener {
     if (comp instanceof javax.swing.JComponent) {
         javax.swing.JComponent jc = (javax.swing.JComponent) comp;
         jc.setOpaque(true);
-        String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+        //String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
         jc.putClientProperty("FlatLaf.style", "background: " + hex);
 
         // Targeted Black Strip Fix
