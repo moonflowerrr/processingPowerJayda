@@ -700,6 +700,7 @@ public abstract class Editor extends JFrame implements RunnerListener {
 
   private void forceColorRecursively(java.awt.Component comp, Color c, int mode) {
     if (comp == null) return;
+    String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     String className = comp.getClass().getName();
 
     // GUARDRAILS: Check if we are touching things we shouldn't
