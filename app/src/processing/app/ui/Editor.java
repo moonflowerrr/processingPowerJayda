@@ -602,8 +602,18 @@ public abstract class Editor extends JFrame implements RunnerListener {
 
     // 1. OUTER THEME (Toolbar/Tabs/Frame)
     if (headerHex != null) {
-        // MODE 0: Paint everything EXCEPT the code area and console
-        forceColorRecursively(this, Color.decode(headerHex), 0); 
+      Color c = Color.decode(headerHex);
+      
+      // --- PUT THE TAB MYSTERY HERE ---
+      // This forces the "Selected" tab to match your pink/outer color
+      javax.swing.UIManager.put("TabbedPane.selectedBackground", c);
+      javax.swing.UIManager.put("TabbedPane.background", c.darker());
+      javax.swing.UIManager.put("TabbedPane.underlineColor", Color.WHITE);
+      // --------------------------------
+      
+      
+      // MODE 0: Paint everything EXCEPT the code area and console
+      forceColorRecursively(this, c, 0);
     }
 
     // 2. CONSOLE (The Bottom)
@@ -699,6 +709,21 @@ public abstract class Editor extends JFrame implements RunnerListener {
     if (mode == 0) { // OUTER MODE
         // Skip the inner "meat" of the editor so it doesn't turn the same color
         if (isConsole || isTextArea) return; 
+        
+        // --- NEW POLISH LINES ---
+        if (comp instanceof javax.swing.JComponent) {
+          javax.swing.JComponent jc = (javax.swing.JComponent) comp;
+          // This targets the Tab bar and Toolbar specifically
+          jc.putClientProperty("FlatLaf.style", "background: " + hex);
+          
+          // If it's the Status Bar at the bottom
+          if (className.contains("EditorStatus")) {
+             jc.setBackground(c);
+             for (java.awt.Component child : jc.getComponents()) {
+               child.setBackground(c);
+             }
+          }
+        }
     }
 
     // Apply the paint
