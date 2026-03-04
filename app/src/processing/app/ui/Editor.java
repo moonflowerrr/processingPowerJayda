@@ -613,9 +613,12 @@ public abstract class Editor extends JFrame implements RunnerListener {
     }
 
     // 3. INNER (The actual code background)
-    // We handle this directly so it doesn't leak
     if (editorHex != null && textarea != null) {
-        textarea.setBackground(Color.decode(editorHex));
+        Color c = Color.decode(editorHex);
+        textarea.setBackground(c);
+        // ADD THIS: It forces the 'painter' (the part that draws the text) to use the color
+        textarea.getPainter().setBackground(c); 
+        textarea.getPainter().setOpaque(true);
     }
 
     // --- TARGET THE CODE GUTTER (Inner Strip) ---
@@ -661,8 +664,28 @@ public abstract class Editor extends JFrame implements RunnerListener {
         }
       }
     }
+
+    // Call the helper while still inside applyCustomColors
+    if (editorHex != null && textarea != null) {
+        Color c = Color.decode(editorHex);
+        findAndPaintGutter(this, c, editorHex);
+    }
     
     this.repaint();
+  }
+
+  private void findAndPaintGutter(java.awt.Container container, Color c, String hex) {
+    for (java.awt.Component comp : container.getComponents()) {
+      if (comp.getClass().getName().contains("Gutter")) {
+        comp.setBackground(c);
+        if (comp instanceof javax.swing.JComponent) {
+          ((javax.swing.JComponent)comp).putClientProperty("FlatLaf.style", "background: " + hex);
+        }
+      }
+      if (comp instanceof java.awt.Container) {
+        findAndPaintGutter((java.awt.Container) comp, c, hex);
+      }
+    }
   }
 
   private void forceColorRecursively(java.awt.Component comp, Color c, int mode) {

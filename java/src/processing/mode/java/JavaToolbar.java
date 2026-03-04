@@ -83,11 +83,13 @@ public class JavaToolbar extends EditorToolbar {
       // 3. Map selection to Processing's internal Preference keys
       if (selection.equals("Outer Theme")) {
         processing.app.Preferences.set("header.color", hex); 
+        applyCustomColor(0, pickedColor); // Added this to trigger the update
       } else if (selection.equals("Inner Coding Area")) {
-        processing.app.Preferences.set("editor.bgcolor", hex);
-        processing.app.Preferences.set("editor.fgcolor", "#" + Integer.toHexString(getContrastColor(pickedColor).getRGB()).substring(2));
+        processing.app.Preferences.set("editor.background", hex); // Changed from bgcolor
+        applyCustomColor(1, pickedColor); // Added this to trigger the update
       } else {
         processing.app.Preferences.set("console.color", hex);
+        applyCustomColor(2, pickedColor); // Added this to trigger the update
       }
 
       // 4. Acceptance Criteria: Immediately display and save
@@ -100,22 +102,32 @@ public class JavaToolbar extends EditorToolbar {
     String hex = String.format("#%02x%02x%02x", pickedColor.getRed(), pickedColor.getGreen(), pickedColor.getBlue());
     java.awt.Window window = javax.swing.SwingUtilities.getWindowAncestor(this);
 
-    if (optionIndex == 0) { // Outer Theme
+    if (optionIndex == 0) { // OUTER THEME (Toolbar/Tabs)
       processing.app.Preferences.set("header.color", hex);
-      jeditor.rebuildHeader(); // Processing's built-in refresh
-      jeditor.applyCustomColors(); // YOUR NEW POWER MOVE
+      if (jeditor != null) {
+        jeditor.applyCustomColors();
+        jeditor.rebuildHeader();
+      }
     } 
-    else if (optionIndex == 1) { // Inner Theme
+    else if (optionIndex == 1) { // INNER THEME (The Code Editor)
       processing.app.Preferences.set("editor.background", hex);
-      jeditor.applyCustomColors(); 
+      // This tells the text area to update its internal theme
+      if (jeditor != null) {
+        jeditor.applyCustomColors(); 
+        jeditor.getTextArea().setBackground(pickedColor);
+      }
     } 
-    else if (optionIndex == 2) { // Console
+    else if (optionIndex == 2) { // CONSOLE THEME (The Bottom Area)
       processing.app.Preferences.set("console.color", hex);
-      jeditor.applyCustomColors();
+      if (jeditor != null) {
+        jeditor.applyCustomColors();
+      }
     }
 
-    processing.app.Preferences.save();
-    javax.swing.SwingUtilities.updateComponentTreeUI(window);
+    // Always repaint at the very end
+    if (window != null) {
+      window.repaint();
+    }
   }
 
   private void vanquishBlueSurgically(java.awt.Component comp, Color c, int mode) {
